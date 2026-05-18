@@ -1,50 +1,162 @@
-# Welcome to your Expo app 👋
+# Tallyx Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo React Native app for sari-sari store owners to manage customers, credits, payments, and blockchain verification status.
 
-## Get started
+The mobile app is the primary product experience. It should feel complete even while backend and blockchain sync are still being connected.
 
-1. Install dependencies
+## Stack
 
-   ```bash
-   npm install
-   ```
+- Expo SDK 55
+- React Native
+- Expo Router
+- TypeScript
+- Zustand
+- Expo SecureStore
+- AsyncStorage
+- NativeWind
+- Lucide React Native
+- Stellar Base SDK
 
-2. Start the app
+## Product Flows
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```txt
+Onboarding
+  -> Sign Up
+  -> Sign In
+  -> Store Name
+  -> Phone Number
+  -> Wallet Generation
+  -> Dashboard
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Protected tabs:
 
-## Learn more
+- Dashboard
+- Customers
+- Credits
+- Payments
+- Settings
 
-To learn more about developing your project with Expo, look at the following resources:
+## Folder Structure
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```txt
+app/
+  (onboarding)/
+  (auth)/
+  (account)/
+  (protected)/
+components/
+context/
+features/
+stores/
+utils/
+```
 
-## Join the community
+Feature-first folders are preferred for product logic:
 
-Join our community of developers creating universal apps.
+```txt
+features/
+  auth/
+  customers/
+  credits/
+  payments/
+  wallet/
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Setup
+
+```bash
+npm install
+npm run start
+```
+
+Useful commands:
+
+```bash
+npm run android
+npm run ios
+npm run web
+npm run lint
+npx tsc --noEmit
+```
+
+## Wallet Rules
+
+The mobile app generates the store wallet because the secret key must stay on the user's device.
+
+Allowed:
+
+- Display the Stellar public key.
+- Store the Stellar public key in the backend.
+- Cache the Stellar public key locally.
+
+Never:
+
+- Send the Stellar secret key to the backend.
+- Store the Stellar secret key in AsyncStorage.
+- Log the Stellar secret key.
+- Show the Stellar secret key permanently in the UI.
+
+Current wallet storage:
+
+- Secret key: Expo SecureStore
+- Public key: Expo SecureStore and backend store profile
+
+## State Management
+
+Use Zustand for local app state:
+
+- onboarding state
+- account setup state
+- store profile
+- customers
+- credits
+- payments
+
+Use AsyncStorage only for non-sensitive cached app data. Use SecureStore for JWTs and wallet secrets.
+
+## Design Direction
+
+The app should feel like a modern iOS fintech tool:
+
+- clean spacing
+- light surfaces
+- soft shadows
+- rounded cards
+- calm green brand color
+- realistic ledger hierarchy
+
+Avoid crypto-heavy visuals, neon colors, dense dashboards, and complicated DeFi language.
+
+## Current Screens
+
+- Onboarding
+- Sign up
+- Sign in
+- Forgot password shell
+- Store setup
+- Wallet generation
+- Dashboard
+- Customers
+- Credits
+- Payments
+- Settings
+
+## Backend Integration TODO
+
+- Replace temporary auth state with real backend auth calls.
+- Store JWT in SecureStore.
+- Fetch and persist store profile through the backend.
+- Connect customer CRUD to API.
+- Connect credit creation/list to API.
+- Connect payment creation/history to API.
+- Surface blockchain sync status without blocking local ledger UX.
+
+## Security Checklist
+
+- JWT in SecureStore.
+- Stellar secret key in SecureStore only.
+- Stellar public key may be sent to backend.
+- No wallet secret logs.
+- No passwords in AsyncStorage.
+- No hardcoded production secrets.
