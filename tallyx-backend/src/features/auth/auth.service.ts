@@ -31,14 +31,18 @@ export async function register(input: RegisterInput) {
 
   const passwordHash = await bcrypt.hash(input.password, 12);
 
-  await db.insert(users).values({
-    id: randomUUID(),
-    ownerName: input.ownerName,
-    email: input.email,
-    passwordHash,
-  });
+  const [user] = await db
+    .insert(users)
+    .values({
+      id: randomUUID(),
+      ownerName: input.ownerName,
+      email: input.email,
+      passwordHash,
+    })
+    .returning();
 
-  return { message: "Account created successfully" };
+  const token = signToken(user.id);
+  return { token, user: await safeUser(user) };
 }
 
 export async function login(input: LoginInput) {

@@ -1,25 +1,20 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 import { useStoreStore } from '@/stores/store.store';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
-const TOKEN_KEY = 'auth_token';
-const secureStoreOptions: SecureStore.SecureStoreOptions = {
-  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
-};
-
-interface User {
-  id: string;
-  ownerName: string;
-  email: string;
-  hasStore: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { AuthUser, StoreProfileResponse } from '@/features/auth/auth.types';
+import {
+  clearAuthToken,
+  createStoreProfile,
+  getCurrentUser,
+  getMyStore,
+  getStoredAuthToken,
+  saveAuthToken,
+  signInWithEmail,
+  signUpWithEmail,
+} from '@/features/auth/auth.service';
 
 interface AuthContextValue {
-  user: User | null;
+  user: AuthUser | null;
   token: string | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
@@ -31,88 +26,75 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  function cacheStoreProfile(data: StoreProfileResponse) {
+    const store = data.store;
+
+    useStoreStore.getState().setProfile({
+      name: store.storeName ?? store.name ?? 'My Store',
+      phone: store.phoneNumber ?? store.phone ?? '',
+      stellarPublicKey: store.stellarPublicKey ?? undefined,
+    });
+  }
+
   async function fetchStoreProfile(authToken: string) {
     try {
-      const res = await fetch(`${API_URL}/stores/me`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const store = data.store ?? data;
-        useStoreStore.getState().setProfile({
-          name: store.storeName ?? store.name,
-          phone: store.phoneNumber ?? store.phone ?? '',
-          stellarPublicKey: store.stellarPublicKey,
-        });
-      }
+      const data = await getMyStore(authToken);
+      cacheStoreProfile(data);
     } catch {
-      // non-fatal — dashboard falls back to user.ownerName
+      // Non-fatal: the dashboard can render while store sync catches up.
     }
   }
 
   useEffect(() => {
     async function bootstrap() {
       try {
-        const stored = await SecureStore.getItemAsync(TOKEN_KEY);
-        if (!stored) { setIsLoading(false); return; }
+        const storedToken = await getStoredAuthToken();
+        if (!storedToken) {
+          setIsLoading(false);
+          return;
+        }
 
-        const res = await fetch(`${API_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${stored}` },
-        });
+        const data = await getCurrentUser(storedToken);
+        setToken(storedToken);
+        setUser(data.user);
 
-        if (res.ok) {
-          const data = await res.json();
-          setToken(stored);
-          setUser(data.user);
-          if (data.user.hasStore) {
-            await fetchStoreProfile(stored);
-          }
-        } else {
-          await SecureStore.deleteItemAsync(TOKEN_KEY);
+        if (data.user.hasStore) {
+          await fetchStoreProfile(storedToken);
         }
       } catch {
-        await SecureStore.deleteItemAsync(TOKEN_KEY);
+        await clearAuthToken();
+        useStoreStore.getState().clearProfile();
       } finally {
         setIsLoading(false);
       }
     }
+
     bootstrap();
   }, []);
 
   async function signIn(email: string, password: string) {
-    const res = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? data.message ?? 'Sign in failed');
-
-    await SecureStore.setItemAsync(TOKEN_KEY, data.token, secureStoreOptions);
+    const data = await signInWithEmail(email, password);
+    await saveAuthToken(data.token);
     setToken(data.token);
     setUser(data.user);
+
     if (data.user.hasStore) {
       await fetchStoreProfile(data.token);
     }
-    router.replace(data.user.hasStore ? '/(protected)/(tabs)/dashboard' : '/(account)' as any);
+
+    router.replace(data.user.hasStore ? '/(protected)/(tabs)/dashboard' : '/(account)');
   }
 
   async function signUp(ownerName: string, email: string, password: string) {
-    const res = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ownerName, email, password }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? data.message ?? 'Sign up failed');
-
-    router.replace('/(auth)/sign-in');
+    const data = await signUpWithEmail(ownerName, email, password);
+    await saveAuthToken(data.token);
+    setToken(data.token);
+    setUser(data.user);
+    router.replace(data.user.hasStore ? '/(protected)/(tabs)/dashboard' : '/(account)');
   }
 
   async function setupStore(storeName: string, phoneNumber: string, stellarPublicKey: string) {
@@ -120,30 +102,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Missing auth session. Please sign in again.');
     }
 
-    const res = await fetch(`${API_URL}/stores`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        storeName,
-        phoneNumber: phoneNumber || undefined,
-        stellarPublicKey,
-      }),
+    const data = await createStoreProfile(token, {
+      storeName,
+      phoneNumber: phoneNumber || undefined,
+      stellarPublicKey,
     });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? data.message ?? 'Store setup failed');
-
-    useStoreStore.getState().setProfile({
-      name: data.store?.storeName ?? storeName,
-      phone: data.store?.phoneNumber ?? phoneNumber,
-      stellarPublicKey: data.store?.stellarPublicKey ?? stellarPublicKey,
-    });
+    cacheStoreProfile(data);
     setUser((prev) => prev ? { ...prev, hasStore: true } : prev);
     router.replace('/(protected)/(tabs)/dashboard');
   }
 
   async function signOut() {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await clearAuthToken();
     useStoreStore.getState().clearProfile();
     setToken(null);
     setUser(null);

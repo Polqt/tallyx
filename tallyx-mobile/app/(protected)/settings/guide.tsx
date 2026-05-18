@@ -85,7 +85,7 @@ export default function GuideScreen() {
           Your guide to{'\n'}managing utang.
         </Text>
         <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 14, color: '#6B7280', lineHeight: 22, marginBottom: 36 }}>
-          Follow these steps and you'll have your store running digitally in minutes.
+          {"Follow these steps and you'll have your store running digitally in minutes."}
         </Text>
 
         {/* Timeline */}
@@ -150,7 +150,7 @@ export default function GuideScreen() {
             Need more help?
           </Text>
           <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: '#9CA3AF', lineHeight: 20 }}>
-            Reach out to us through the Settings screen. We're happy to walk you through anything.
+            {"Reach out to us through the Settings screen. We're happy to walk you through anything."}
           </Text>
         </View>
       </ScrollView>
