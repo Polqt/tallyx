@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { createStoreSchema } from "./stores.schema.js";
-import { createStore, getStore } from "./stores.service.js";
+import { saveStore, getStore } from "./stores.service.js";
 import { authenticate } from "../../middleware/authenticate.js";
 
 export const storesRouter = Router();
@@ -11,8 +11,8 @@ storesRouter.use(authenticate);
 storesRouter.post("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const input = createStoreSchema.parse(req.body);
-    const result = await createStore(req.user!.id, input);
-    res.status(201).json(result);
+    const result = await saveStore(req.user!.id, input);
+    res.status(result.created ? 201 : 200).json(result);
   } catch (err) {
     next(err);
   }

@@ -5,9 +5,27 @@ import { stores } from "../../db/schema.js";
 import { AppError } from "../../middleware/errorHandler.js";
 import type { CreateStoreInput } from "./stores.schema.js";
 
-export async function createStore(userId: string, input: CreateStoreInput) {
-  const existing = await db.select().from(stores).where(eq(stores.userId, userId)).limit(1);
-  if (existing.length > 0) throw new AppError("Store already exists", 409);
+export async function saveStore(userId: string, input: CreateStoreInput) {
+  const [existingStore] = await db
+    .select()
+    .from(stores)
+    .where(eq(stores.userId, userId))
+    .limit(1);
+
+  if (existingStore) {
+    const [store] = await db
+      .update(stores)
+      .set({
+        storeName: input.storeName,
+        phoneNumber: input.phoneNumber ?? null,
+        stellarPublicKey: input.stellarPublicKey ?? existingStore.stellarPublicKey,
+        updatedAt: new Date(),
+      })
+      .where(eq(stores.id, existingStore.id))
+      .returning();
+
+    return { store, created: false };
+  }
 
   const [store] = await db
     .insert(stores)
@@ -20,7 +38,7 @@ export async function createStore(userId: string, input: CreateStoreInput) {
     })
     .returning();
 
-  return { store };
+  return { store, created: true };
 }
 
 export async function getStore(userId: string) {
