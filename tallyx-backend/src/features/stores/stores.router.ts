@@ -1,11 +1,21 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { createStoreSchema } from "./stores.schema.js";
-import { saveStore, getStore } from "./stores.service.js";
+import { saveStore, getDashboardSummary, getStore } from "./stores.service.js";
 import { authenticate } from "../../middleware/authenticate.js";
 
 export const storesRouter = Router();
 
 storesRouter.use(authenticate);
+
+// GET /stores/dashboard
+storesRouter.get("/dashboard", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await getDashboardSummary(req.user!.id);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // POST /stores
 storesRouter.post("/", async (req: Request, res: Response, next: NextFunction) => {

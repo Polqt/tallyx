@@ -1,28 +1,32 @@
-import { useRef, useEffect, useState } from 'react';
-import { ScrollView, Text, View, Animated, TouchableOpacity, Modal, Pressable } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { TrendingUp, ChevronDown } from 'lucide-react-native';
+import { ChevronDown } from 'lucide-react-native';
+import { DashboardStatStrip } from '@/components/dashboard/dashboard-stat-strip';
+import { RecentActivityList } from '@/components/dashboard/recent-activity-list';
 import { useAuth } from '@/context/AuthContext';
+import { fetchDashboardSummary } from '@/features/dashboard/dashboard.service';
 import { useStoreStore } from '@/stores/store.store';
-import { getGreeting } from '@/utils/dashboard';
+import {
+  DASHBOARD_PERIODS,
+  EMPTY_DASHBOARD_SUMMARY,
+  formatPeso,
+  getGreeting,
+  type DashboardPeriod,
+} from '@/utils/dashboard';
 import { haptics } from '@/utils/haptics';
-
-const PERIODS = ['All time', 'This week', 'This month', 'This year'] as const;
-type Period = (typeof PERIODS)[number];
-
-// Placeholder data — replace with real API values when wired
-const overdueAmount = 0;
-const customerCount = 0;
-const openCreditsCount = 0;
 
 export default function Dashboard() {
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const profile = useStoreStore((s) => s.profile);
   const storeName = profile?.name ?? user?.ownerName ?? 'My Store';
 
-  const [period, setPeriod] = useState<Period>('All time');
+  const [period, setPeriod] = useState<DashboardPeriod>('All time');
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [summary, setSummary] = useState(EMPTY_DASHBOARD_SUMMARY);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(12)).current;
@@ -48,17 +52,43 @@ export default function Dashboard() {
     ]).start();
   }, [fadeAnim, slideAnim, waveAnim]);
 
+  useEffect(() => {
+    if (!token) return;
+
+    const authToken = token;
+    const controller = new AbortController();
+
+    async function loadDashboardSummary() {
+      setLoadingSummary(true);
+      setSummaryError(null);
+
+      try {
+        const data = await fetchDashboardSummary(authToken, controller.signal);
+        setSummary(data);
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        setSummaryError(error instanceof Error ? error.message : 'Unable to load dashboard.');
+      } finally {
+        setLoadingSummary(false);
+      }
+    }
+
+    loadDashboardSummary();
+    return () => controller.abort();
+  }, [token]);
+
   const waveRotate = waveAnim.interpolate({
     inputRange: [-0.5, 0, 1],
     outputRange: ['-10deg', '0deg', '20deg'],
   });
+  const totals = summary.totals;
 
   function openPicker() {
     haptics.light();
     setPickerVisible(true);
   }
 
-  function selectPeriod(p: Period) {
+  function selectPeriod(p: DashboardPeriod) {
     haptics.selection();
     setPeriod(p);
     setPickerVisible(false);
@@ -71,24 +101,19 @@ export default function Dashboard() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Dark green header ── */}
         <View style={{ backgroundColor: '#14532D', paddingTop: insets.top + 20, paddingHorizontal: 20, paddingBottom: 32 }}>
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-
-            {/* Line 1: greeting */}
             <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 15, color: 'rgba(255,255,255,0.7)', marginBottom: 3 }}>
-              {getGreeting()}, {user?.ownerName?.split(' ')[0] ?? 'there'}
+              {getGreeting()}, {user?.ownerName?.split(' ')[0] ?? 'there'}{' '}
+              <Animated.Text style={{ fontSize: 13, transform: [{ rotate: waveRotate }] }}>{'\uD83D\uDC4B'}</Animated.Text>
             </Text>
 
-            {/* Line 2: store name + wave */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 28 }}>
               <Text style={{ fontFamily: 'Geist_600SemiBold', fontSize: 13, color: '#FFFFFF' }}>
                 {storeName}
               </Text>
-              <Animated.Text style={{ fontSize: 13, transform: [{ rotate: waveRotate }] }}>👋</Animated.Text>
             </View>
 
-            {/* Total receivables — centered */}
             <View style={{ alignItems: 'center' }}>
               <Text style={{
                 fontFamily: 'Geist_500Medium', fontSize: 11, color: 'rgba(255,255,255,0.55)',
@@ -97,13 +122,13 @@ export default function Dashboard() {
                 Total Receivables
               </Text>
               <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 64, color: '#FFFFFF', lineHeight: 72 }}>
-                {"₱0"}
+                {formatPeso(totals.totalReceivables)}
               </Text>
-              {overdueAmount > 0 ? (
+              {totals.overdueAmount > 0 ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
                   <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#F59E0B' }} />
                   <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: '#FCD34D' }}>
-                    ₱{overdueAmount.toLocaleString()} overdue
+                    {formatPeso(totals.overdueAmount)} overdue
                   </Text>
                 </View>
               ) : (
@@ -115,59 +140,17 @@ export default function Dashboard() {
                 </View>
               )}
             </View>
-
           </Animated.View>
         </View>
 
-        {/* ── White sheet with 28px arc ── */}
         <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -20, flexGrow: 1 }}>
+          <DashboardStatStrip
+            customerCount={totals.customerCount}
+            openCreditsCount={totals.openCreditsCount}
+            overdueAmount={totals.overdueAmount}
+          />
 
-          {/* Stats strip — no cards, no icons, dividers only */}
-          <View style={{ flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 20 }}>
-
-            <View style={{ flex: 1, alignItems: 'center' }}>
-              <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 28, color: '#111827' }}>
-                {customerCount}
-              </Text>
-              <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 12, color: '#6B7280', marginTop: 3 }}>
-                Customers
-              </Text>
-            </View>
-
-            <View style={{ width: 1, backgroundColor: '#F3F4F6', marginVertical: 4 }} />
-
-            <View style={{ flex: 1, alignItems: 'center' }}>
-              <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 28, color: '#111827' }}>
-                {openCreditsCount}
-              </Text>
-              <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 12, color: '#6B7280', marginTop: 3 }}>
-                Open Credits
-              </Text>
-            </View>
-
-            <View style={{ width: 1, backgroundColor: '#F3F4F6', marginVertical: 4 }} />
-
-            <View style={{ flex: 1, alignItems: 'center' }}>
-              <Text style={{
-                fontFamily: 'Geist_700Bold', fontSize: 28,
-                color: overdueAmount > 0 ? '#D97706' : '#111827',
-              }}>
-                {"₱0"}
-              </Text>
-              <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 12, color: '#6B7280', marginTop: 3 }}>
-                Overdue
-              </Text>
-            </View>
-
-          </View>
-
-          {/* Horizontal divider below strip */}
-          <View style={{ height: 1, backgroundColor: '#F3F4F6', marginHorizontal: 0 }} />
-
-          {/* Recent Activity */}
           <View style={{ marginTop: 24, paddingHorizontal: 20 }}>
-
-            {/* Header row */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 17, color: '#111827' }}>Recent Activity</Text>
               <TouchableOpacity
@@ -185,22 +168,29 @@ export default function Dashboard() {
               </TouchableOpacity>
             </View>
 
-            {/* Empty state — no card, flat on white */}
-            <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-              <TrendingUp size={28} color="#D1D5DB" strokeWidth={1.8} />
-              <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 15, color: '#374151', marginTop: 14 }}>
-                No activity yet
-              </Text>
-              <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: '#9CA3AF', marginTop: 4, textAlign: 'center', lineHeight: 20 }}>
-                {"Credits and payments you record\nwill appear here."}
-              </Text>
-            </View>
-
+            {loadingSummary ? (
+              <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                <ActivityIndicator size="small" color="#16A34A" />
+                <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: '#9CA3AF', marginTop: 10 }}>
+                  Loading dashboard...
+                </Text>
+              </View>
+            ) : summaryError ? (
+              <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                <Text style={{ fontFamily: 'Geist_600SemiBold', fontSize: 14, color: '#B45309' }}>
+                  Dashboard unavailable
+                </Text>
+                <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: '#9CA3AF', marginTop: 4, textAlign: 'center' }}>
+                  {summaryError}
+                </Text>
+              </View>
+            ) : (
+              <RecentActivityList items={summary.recentActivity} />
+            )}
           </View>
         </View>
       </ScrollView>
 
-      {/* Period picker bottom sheet */}
       <Modal visible={pickerVisible} transparent animationType="fade" onRequestClose={() => setPickerVisible(false)}>
         <Pressable
           style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}
@@ -215,7 +205,7 @@ export default function Dashboard() {
               <Text style={{ fontFamily: 'Geist_600SemiBold', fontSize: 15, color: '#111827', paddingHorizontal: 20, marginBottom: 12 }}>
                 Filter by period
               </Text>
-              {PERIODS.map((p) => (
+              {DASHBOARD_PERIODS.map((p) => (
                 <TouchableOpacity
                   key={p}
                   onPress={() => selectPeriod(p)}
