@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const createCustomerSchema = z.object({
+  storeId: z.string().uuid(),
   name: z.string().min(1).max(100),
   phone: z.string().min(7).max(20),
   email: z.string().email().optional(),

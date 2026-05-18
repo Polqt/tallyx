@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const createCreditSchema = z.object({
+  storeId: z.string().uuid(),
   customerId: z.string().uuid(),
   amount: z.number().int().positive(),
   dueDate: z.string().datetime().optional(),

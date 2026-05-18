@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -35,6 +35,7 @@ export const credits = pgTable("credits", {
   storeId: text("store_id").notNull().references(() => stores.id),
   amount: text("amount").notNull(),
   balance: text("balance").notNull(),
+  status: text("status").notNull().default("active"),
   dueDate: timestamp("due_date"),
   stellarTxHash: text("stellar_tx_hash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

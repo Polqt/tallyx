@@ -14,7 +14,7 @@ export async function recordPayment(
 ) {
   const [payment] = await db
     .insert(payments)
-    .values({ id: randomUUID(), creditId, amount, stellarTxHash })
+    .values({ id: randomUUID(), creditId, amount: amount.toString(), stellarTxHash })
     .returning();
 
   return payment;
