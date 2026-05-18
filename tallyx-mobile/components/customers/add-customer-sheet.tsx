@@ -12,7 +12,6 @@ type AddCustomerSheetProps = {
   name: string;
   phone: string;
   creating: boolean;
-  formVersion: number;
   onNameChange: (value: string) => void;
   onPhoneChange: (value: string) => void;
   onSubmit: () => void;
@@ -20,7 +19,7 @@ type AddCustomerSheetProps = {
 };
 
 export const AddCustomerSheet = forwardRef<BottomSheet, AddCustomerSheetProps>(
-  ({ name, phone, creating, formVersion, onNameChange, onPhoneChange, onSubmit, onClose }, ref) => {
+  ({ name, phone, creating, onNameChange, onPhoneChange, onSubmit, onClose }, ref) => {
     const insets = useSafeAreaInsets();
     const { height: screenHeight } = useWindowDimensions();
     const canSubmit = Boolean(name.trim()) && !creating;
@@ -69,8 +68,6 @@ export const AddCustomerSheet = forwardRef<BottomSheet, AddCustomerSheetProps>(
             <AddCustomerForm
               name={name}
               phone={phone}
-              creating={creating}
-              formVersion={formVersion}
               onNameChange={onNameChange}
               onPhoneChange={onPhoneChange}
               onSubmit={onSubmit}

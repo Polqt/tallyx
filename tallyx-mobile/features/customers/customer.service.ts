@@ -1,4 +1,10 @@
-import type { CreateCustomerInput, CustomerDetail, CustomerListItem } from './customer.types';
+import type {
+  CreateCustomerInput,
+  CustomerDetail,
+  CustomerListItem,
+  CustomerListResponse,
+  FetchCustomersParams,
+} from './customer.types';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
@@ -31,8 +37,22 @@ async function customerRequest<T>(path: string, token: string, options: RequestI
   return data as T;
 }
 
-export function fetchCustomers(token: string, signal?: AbortSignal) {
-  return customerRequest<CustomerListItem[]>('/customers', token, { signal });
+function buildCustomerListPath(params: FetchCustomersParams) {
+  const searchParams = new URLSearchParams({
+    page: String(params.page ?? 1),
+    limit: String(params.limit ?? 20),
+  });
+
+  const query = params.query?.trim();
+  if (query) searchParams.set('q', query);
+
+  return `/customers?${searchParams.toString()}`;
+}
+
+export function fetchCustomers(token: string, params: FetchCustomersParams = {}) {
+  return customerRequest<CustomerListResponse>(buildCustomerListPath(params), token, {
+    signal: params.signal,
+  });
 }
 
 export function fetchCustomerDetail(token: string, id: string, signal?: AbortSignal) {

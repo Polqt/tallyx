@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, FlatList, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Plus, UsersRound, WalletCards } from 'lucide-react-native';
+import { Plus, UsersRound } from 'lucide-react-native';
 import BottomSheet from '@gorhom/bottom-sheet';
 import Toast from 'react-native-toast-message';
 import { AddCustomerSheet } from '@/components/customers/add-customer-sheet';
@@ -10,47 +10,41 @@ import { CustomerEmptyState } from '@/components/customers/customer-empty-state'
 import { CustomerListRow } from '@/components/customers/customer-list-row';
 import { CustomerSearchBar } from '@/components/customers/customer-search-bar';
 import { useAuth } from '@/context/AuthContext';
-import { useNavVisibility } from '@/context/NavVisibilityContext';
 import { createCustomer, fetchCustomers } from '@/features/customers/customer.service';
 import type { CustomerListItem } from '@/features/customers/customer.types';
-import { formatPeso } from '@/utils/dashboard';
 import { haptics } from '@/utils/haptics';
+
 
 export default function Customers() {
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
-  const { hideNav, showNav } = useNavVisibility();
   const [customers, setCustomers] = useState<CustomerListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCustomers, setTotalCustomers] = useState(0);
 
   const sheetRef = useRef<BottomSheet>(null);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [creating, setCreating] = useState(false);
-  const [formVersion, setFormVersion] = useState(0);
 
   const fadeAnims = useRef<Record<string, Animated.Value>>({});
 
-  const filtered = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return customers;
-
-    return customers.filter((customer) =>
-      [customer.name, customer.phone].filter(Boolean).some((value) =>
-        value!.toLowerCase().includes(normalizedQuery)
-      )
-    );
-  }, [customers, query]);
-
-  const totalReceivables = useMemo(
-    () => customers.reduce((sum, customer) => sum + customer.balance, 0),
-    [customers]
-  );
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query.trim()), 250);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
     const authToken = token;
     const controller = new AbortController();
@@ -60,8 +54,16 @@ export default function Customers() {
       setLoadError(null);
 
       try {
-        const data = await fetchCustomers(authToken, controller.signal);
-        setCustomers(data);
+        const data = await fetchCustomers(authToken, {
+          page: 1,
+          limit: 20,
+          query: debouncedQuery,
+          signal: controller.signal,
+        });
+        setCustomers(data.items);
+        setPage(data.pagination.page);
+        setHasMore(data.pagination.hasMore);
+        setTotalCustomers(data.pagination.total);
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') return;
         setLoadError(error instanceof Error ? error.message : 'Unable to load customers.');
@@ -72,23 +74,58 @@ export default function Customers() {
 
     loadCustomers();
     return () => controller.abort();
-  }, [token]);
+  }, [debouncedQuery, token]);
+
+  const loadMoreCustomers = useCallback(async () => {
+    if (!token || loading || loadingMore || !hasMore) return;
+
+    setLoadingMore(true);
+
+    try {
+      const nextPage = page + 1;
+      const data = await fetchCustomers(token, {
+        page: nextPage,
+        limit: 20,
+        query: debouncedQuery,
+      });
+
+      setCustomers((prev) => [...prev, ...data.items]);
+      setPage(data.pagination.page);
+      setHasMore(data.pagination.hasMore);
+      setTotalCustomers(data.pagination.total);
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Could not load more customers',
+        text2: error instanceof Error ? error.message : 'Please try again.',
+        position: 'top',
+      });
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [debouncedQuery, hasMore, loading, loadingMore, page, token]);
 
   function openSheet() {
     haptics.light();
-    hideNav();
     sheetRef.current?.expand();
   }
 
   function resetForm() {
     setNewName('');
     setNewPhone('');
-    setFormVersion((version) => version + 1);
-    showNav();
   }
 
   async function handleCreate() {
     if (!token || !newName.trim()) return;
+    if (newPhone.trim() && newPhone.trim().length < 7) {
+      Toast.show({
+        type: 'error',
+        text1: 'Check the phone number',
+        text2: 'Use at least 7 digits or leave it blank.',
+        position: 'top',
+      });
+      return;
+    }
 
     haptics.medium();
     setCreating(true);
@@ -101,6 +138,7 @@ export default function Customers() {
 
       fadeAnims.current[customer.id] = new Animated.Value(0);
       setCustomers((prev) => [customer, ...prev]);
+      setTotalCustomers((total) => total + 1);
       resetForm();
       sheetRef.current?.close();
       haptics.success();
@@ -143,28 +181,19 @@ export default function Customers() {
   const renderHeader = useCallback(() => (
     <View className="gap-4 pb-4">
       <View className="rounded-[28px] bg-[#14532D] p-5" style={{ boxShadow: '0 12px 30px rgba(20, 83, 45, 0.16)' }}>
-        <View className="mb-6 flex-row items-center justify-between">
+        <View className="flex-row items-center justify-between">
           <View>
             <Text className="text-[12px] font-medium uppercase tracking-[2px] text-white/55">
               Customer book
             </Text>
-            <Text className="mt-1 text-[26px] font-bold text-white">{customers.length} customers</Text>
+            <Text className="mt-1 text-[26px] font-bold text-white">{totalCustomers} customers</Text>
+            <Text className="mt-2 text-[13px] text-white/60">
+              Backend synced customer records
+            </Text>
           </View>
           <View className="h-12 w-12 items-center justify-center rounded-full bg-white/12">
             <UsersRound size={22} color="#FFFFFF" strokeWidth={2} />
           </View>
-        </View>
-
-        <View className="rounded-3xl bg-white/10 p-4">
-          <View className="flex-row items-center gap-2">
-            <WalletCards size={17} color="rgba(255,255,255,0.72)" strokeWidth={2} />
-            <Text className="text-[12px] font-medium uppercase tracking-[1.5px] text-white/60">
-              Outstanding balance
-            </Text>
-          </View>
-          <Text className="mt-2 text-[32px] font-bold text-white" style={{ fontVariant: ['tabular-nums'] }}>
-            {formatPeso(totalReceivables)}
-          </Text>
         </View>
       </View>
 
@@ -175,11 +204,21 @@ export default function Customers() {
           {query.trim() ? 'Search results' : 'Recent customers'}
         </Text>
         <Text className="text-[12px] font-medium text-gray-400">
-          {filtered.length} shown
+          {customers.length} shown
         </Text>
       </View>
     </View>
-  ), [customers.length, filtered.length, query, totalReceivables]);
+  ), [customers.length, query, totalCustomers]);
+
+  const renderFooter = useCallback(() => {
+    if (!loadingMore) return null;
+
+    return (
+      <View className="items-center py-4">
+        <ActivityIndicator size="small" color="#16A34A" />
+      </View>
+    );
+  }, [loadingMore]);
 
   return (
     <View className="flex-1 bg-gray-50" style={{ paddingTop: insets.top + 16 }}>
@@ -196,13 +235,16 @@ export default function Customers() {
         </View>
       ) : (
         <FlatList
-          data={filtered}
+          data={customers}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           ListHeaderComponent={renderHeader}
+          ListFooterComponent={renderFooter}
           ListEmptyComponent={
             <CustomerEmptyState isSearching={Boolean(query.trim())} onAddCustomer={openSheet} />
           }
+          onEndReached={loadMoreCustomers}
+          onEndReachedThreshold={0.35}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 32 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -232,7 +274,6 @@ export default function Customers() {
         name={newName}
         phone={newPhone}
         creating={creating}
-        formVersion={formVersion}
         onNameChange={setNewName}
         onPhoneChange={setNewPhone}
         onSubmit={handleCreate}
