@@ -1,17 +1,20 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { createCustomerSchema } from "./customers.schema.js";
 import {
-  getAllCustomers,
-  getCustomerById,
-  createCustomer,
+  createCustomerForUser,
+  getCustomerForUser,
+  getCustomersForUser,
 } from "./customers.service.js";
+import { authenticate } from "../../middleware/authenticate.js";
 
 export const customerRouter = Router();
 
+customerRouter.use(authenticate);
+
 // GET /customers
-customerRouter.get("/", async (_req: Request, res: Response, next: NextFunction) => {
+customerRouter.get("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await getAllCustomers();
+    const data = await getCustomersForUser(req.user!.id);
     res.json(data);
   } catch (err) {
     next(err);
@@ -21,7 +24,7 @@ customerRouter.get("/", async (_req: Request, res: Response, next: NextFunction)
 // GET /customers/:id
 customerRouter.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await getCustomerById(req.params.id as string);
+    const data = await getCustomerForUser(req.user!.id, req.params.id as string);
     res.json(data);
   } catch (err) {
     next(err);
@@ -32,7 +35,7 @@ customerRouter.get("/:id", async (req: Request, res: Response, next: NextFunctio
 customerRouter.post("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const input = createCustomerSchema.parse(req.body);
-    const data = await createCustomer(input);
+    const data = await createCustomerForUser(req.user!.id, input);
     res.status(201).json(data);
   } catch (err) {
     next(err);

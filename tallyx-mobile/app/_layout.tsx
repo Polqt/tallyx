@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from '@/context/AuthContext';
+import { NavVisibilityProvider } from '@/context/NavVisibilityContext';
 import Toast from 'react-native-toast-message';
 
 SplashScreen.preventAutoHideAsync();
@@ -28,6 +29,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavVisibilityProvider>
       <AuthProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
@@ -38,6 +40,7 @@ export default function RootLayout() {
         </Stack>
         <StatusBar style="auto" />
       </AuthProvider>
+      </NavVisibilityProvider>
       <Toast />
     </GestureHandlerRootView>
   );

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { Animated, View, Text, TouchableOpacity } from 'react-native';
+import { useNavVisibility } from '@/context/NavVisibilityContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import {
@@ -23,10 +24,12 @@ const INACTIVE = '#9CA3AF';
 
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { navOpacity } = useNavVisibility();
 
   return (
-    <View
+    <Animated.View
       style={{
+        opacity: navOpacity,
         position: 'absolute',
         bottom: insets.bottom > 0 ? insets.bottom : 12,
         left: 16,
@@ -127,6 +130,6 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           );
         })}
       </View>
-    </View>
+    </Animated.View>
   );
 }

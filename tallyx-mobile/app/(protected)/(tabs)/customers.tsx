@@ -1,262 +1,243 @@
-import { useState, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, FlatList, TextInput, Animated, Keyboard } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, FlatList, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Search, Plus, ChevronRight, UserRound } from 'lucide-react-native';
-import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import { Plus, UsersRound, WalletCards } from 'lucide-react-native';
+import BottomSheet from '@gorhom/bottom-sheet';
+import Toast from 'react-native-toast-message';
+import { AddCustomerSheet } from '@/components/customers/add-customer-sheet';
+import { CustomerEmptyState } from '@/components/customers/customer-empty-state';
+import { CustomerListRow } from '@/components/customers/customer-list-row';
+import { CustomerSearchBar } from '@/components/customers/customer-search-bar';
+import { useAuth } from '@/context/AuthContext';
+import { useNavVisibility } from '@/context/NavVisibilityContext';
+import { createCustomer, fetchCustomers } from '@/features/customers/customer.service';
+import type { CustomerListItem } from '@/features/customers/customer.types';
+import { formatPeso } from '@/utils/dashboard';
 import { haptics } from '@/utils/haptics';
-
-interface Customer {
-  id: string;
-  name: string;
-  phone?: string;
-  notes?: string;
-  balance: number;
-  lastTransactionDate?: string;
-}
-
-const AVATAR_COLORS = ['#16A34A', '#2563EB', '#7C3AED', '#D97706', '#DC2626', '#DB2777'];
-
-function avatarColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
 
 export default function Customers() {
   const insets = useSafeAreaInsets();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [searchVisible, setSearchVisible] = useState(false);
+  const { token } = useAuth();
+  const { hideNav, showNav } = useNavVisibility();
+  const [customers, setCustomers] = useState<CustomerListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
 
   const sheetRef = useRef<BottomSheet>(null);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
-  const [newNotes, setNewNotes] = useState('');
   const [creating, setCreating] = useState(false);
+  const [formVersion, setFormVersion] = useState(0);
 
   const fadeAnims = useRef<Record<string, Animated.Value>>({});
 
-  const filtered = query.trim()
-    ? customers.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()))
-    : customers;
+  const filtered = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return customers;
 
-  function openSearch() {
-    haptics.light();
-    setSearchVisible(true);
-  }
+    return customers.filter((customer) =>
+      [customer.name, customer.phone].filter(Boolean).some((value) =>
+        value!.toLowerCase().includes(normalizedQuery)
+      )
+    );
+  }, [customers, query]);
 
-  function closeSearch() {
-    setSearchVisible(false);
-    setQuery('');
-    Keyboard.dismiss();
-  }
+  const totalReceivables = useMemo(
+    () => customers.reduce((sum, customer) => sum + customer.balance, 0),
+    [customers]
+  );
+
+  useEffect(() => {
+    if (!token) return;
+
+    const authToken = token;
+    const controller = new AbortController();
+
+    async function loadCustomers() {
+      setLoading(true);
+      setLoadError(null);
+
+      try {
+        const data = await fetchCustomers(authToken, controller.signal);
+        setCustomers(data);
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        setLoadError(error instanceof Error ? error.message : 'Unable to load customers.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadCustomers();
+    return () => controller.abort();
+  }, [token]);
 
   function openSheet() {
     haptics.light();
+    hideNav();
     sheetRef.current?.expand();
   }
 
   function resetForm() {
     setNewName('');
     setNewPhone('');
-    setNewNotes('');
+    setFormVersion((version) => version + 1);
+    showNav();
   }
 
-  function handleCreate() {
-    if (!newName.trim()) return;
-    haptics.success();
+  async function handleCreate() {
+    if (!token || !newName.trim()) return;
+
+    haptics.medium();
     setCreating(true);
 
-    const id = Date.now().toString();
-    const customer: Customer = {
-      id,
-      name: newName.trim(),
-      phone: newPhone.trim() || undefined,
-      notes: newNotes.trim() || undefined,
-      balance: 0,
-    };
+    try {
+      const customer = await createCustomer(token, {
+        name: newName.trim(),
+        phone: newPhone.trim() || undefined,
+      });
 
-    fadeAnims.current[id] = new Animated.Value(0);
-    setCustomers((prev) => [customer, ...prev]);
-    resetForm();
-    sheetRef.current?.close();
-    setCreating(false);
+      fadeAnims.current[customer.id] = new Animated.Value(0);
+      setCustomers((prev) => [customer, ...prev]);
+      resetForm();
+      sheetRef.current?.close();
+      haptics.success();
 
-    setTimeout(() => {
-      Animated.timing(fadeAnims.current[id], {
-        toValue: 1, duration: 350, useNativeDriver: true,
-      }).start();
-    }, 50);
+      setTimeout(() => {
+        Animated.timing(fadeAnims.current[customer.id], {
+          toValue: 1,
+          duration: 350,
+          useNativeDriver: true,
+        }).start();
+      }, 50);
+    } catch (error) {
+      haptics.error();
+      Toast.show({
+        type: 'error',
+        text1: 'Customer not saved',
+        text2: error instanceof Error ? error.message : 'Please try again.',
+        position: 'top',
+      });
+    } finally {
+      setCreating(false);
+    }
   }
 
-  const renderBackdrop = useCallback(
-    (props: any) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />,
-    []
-  );
-
-  const renderItem = useCallback(({ item }: { item: Customer }) => {
+  const renderItem = useCallback(({ item }: { item: CustomerListItem }) => {
     const fadeAnim = fadeAnims.current[item.id] ?? new Animated.Value(1);
-    const color = avatarColor(item.name);
 
     return (
-      <Animated.View style={{ opacity: fadeAnim }}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => { haptics.light(); router.push(`/(protected)/customers/${item.id}` as any); }}
-          className="flex-row items-center px-5 py-4 border-b border-gray-100"
-        >
-          {/* Avatar */}
-          <View className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: color }}>
-            <Text className="text-white text-lg font-bold">{item.name[0].toUpperCase()}</Text>
-          </View>
-
-          {/* Info */}
-          <View className="flex-1 ml-3">
-            <Text className="text-gray-900 text-[15px] font-bold">{item.name}</Text>
-            <Text className={`text-[13px] mt-0.5 ${item.balance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
-              {item.balance > 0 ? `₱${item.balance.toLocaleString()}` : 'All settled'}
-            </Text>
-          </View>
-
-          {/* Right */}
-          <View className="items-end gap-1">
-            <ChevronRight size={16} color="#D1D5DB" strokeWidth={2} />
-            {item.lastTransactionDate ? (
-              <Text className="text-[11px] text-gray-400">{item.lastTransactionDate}</Text>
-            ) : null}
-          </View>
-        </TouchableOpacity>
-      </Animated.View>
+      <CustomerListRow
+        customer={item}
+        opacity={fadeAnim}
+        onPress={() => {
+          haptics.light();
+          router.push(`/(protected)/customers/${item.id}` as any);
+        }}
+      />
     );
   }, []);
 
-  return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top + 16 }}>
+  const renderHeader = useCallback(() => (
+    <View className="gap-4 pb-4">
+      <View className="rounded-[28px] bg-[#14532D] p-5" style={{ boxShadow: '0 12px 30px rgba(20, 83, 45, 0.16)' }}>
+        <View className="mb-6 flex-row items-center justify-between">
+          <View>
+            <Text className="text-[12px] font-medium uppercase tracking-[2px] text-white/55">
+              Customer book
+            </Text>
+            <Text className="mt-1 text-[26px] font-bold text-white">{customers.length} customers</Text>
+          </View>
+          <View className="h-12 w-12 items-center justify-center rounded-full bg-white/12">
+            <UsersRound size={22} color="#FFFFFF" strokeWidth={2} />
+          </View>
+        </View>
 
-      {/* ── Header ── */}
-      <View className="flex-row items-center justify-between px-5 mb-1">
-        <Text className="text-[28px] font-bold text-gray-900">Customers</Text>
-        <TouchableOpacity onPress={openSearch} activeOpacity={0.7} className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
-          <Search size={18} color="#6B7280" strokeWidth={2} />
-        </TouchableOpacity>
+        <View className="rounded-3xl bg-white/10 p-4">
+          <View className="flex-row items-center gap-2">
+            <WalletCards size={17} color="rgba(255,255,255,0.72)" strokeWidth={2} />
+            <Text className="text-[12px] font-medium uppercase tracking-[1.5px] text-white/60">
+              Outstanding balance
+            </Text>
+          </View>
+          <Text className="mt-2 text-[32px] font-bold text-white" style={{ fontVariant: ['tabular-nums'] }}>
+            {formatPeso(totalReceivables)}
+          </Text>
+        </View>
       </View>
 
-      {/* ── Search bar ── */}
-      {searchVisible && (
-        <View className="flex-row items-center mx-5 mt-2 mb-2 bg-gray-100 rounded-xl h-11 px-3">
-          <Search size={16} color="#9CA3AF" strokeWidth={2} />
-          <TextInput
-            className="flex-1 ml-2 text-sm text-gray-900"
-            placeholder="Search customers"
-            placeholderTextColor="#9CA3AF"
-            value={query}
-            onChangeText={setQuery}
-            autoFocus
-            onBlur={closeSearch}
-            returnKeyType="search"
-          />
-          <TouchableOpacity onPress={closeSearch} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text className="text-sm font-medium text-green-600 ml-2">Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <CustomerSearchBar value={query} onChange={setQuery} />
 
-      {/* ── List / Empty ── */}
-      {customers.length === 0 && !searchVisible ? (
+      <View className="flex-row items-center justify-between">
+        <Text className="text-[12px] font-bold uppercase tracking-[1.8px] text-gray-400">
+          {query.trim() ? 'Search results' : 'Recent customers'}
+        </Text>
+        <Text className="text-[12px] font-medium text-gray-400">
+          {filtered.length} shown
+        </Text>
+      </View>
+    </View>
+  ), [customers.length, filtered.length, query, totalReceivables]);
+
+  return (
+    <View className="flex-1 bg-gray-50" style={{ paddingTop: insets.top + 16 }}>
+
+      {loading ? (
         <View className="flex-1 items-center justify-center px-8">
-          <View className="w-16 h-16 rounded-full bg-green-50 items-center justify-center mb-4">
-            <UserRound size={28} color="#16A34A" strokeWidth={1.8} />
-          </View>
-          <Text className="text-base font-bold text-gray-900 mb-2">No customers yet</Text>
-          <Text className="text-sm text-gray-500 text-center mb-6 leading-5">
-            Add your first customer to start tracking utang
-          </Text>
-          <TouchableOpacity onPress={openSheet} activeOpacity={0.85} className="bg-green-600 px-5 py-3 rounded-[20px]">
-            <Text className="text-[15px] font-bold text-white">Add Customer</Text>
-          </TouchableOpacity>
+          <ActivityIndicator size="small" color="#16A34A" />
+          <Text className="text-sm text-gray-400 mt-3">Loading customers...</Text>
+        </View>
+      ) : loadError ? (
+        <View className="flex-1 items-center justify-center px-8">
+          <Text className="text-base font-bold text-amber-700 mb-2">Customers unavailable</Text>
+          <Text className="text-sm text-gray-500 text-center leading-5">{loadError}</Text>
         </View>
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={
+            <CustomerEmptyState isSearching={Boolean(query.trim())} onAddCustomer={openSheet} />
+          }
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 32 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         />
       )}
 
-      {/* ── FAB ── */}
-      <TouchableOpacity
-        onPress={openSheet}
-        activeOpacity={0.85}
-        className="absolute right-5 w-14 h-14 rounded-full bg-green-600 items-center justify-center"
-        style={{
-          bottom: insets.bottom + 90,
-          shadowColor: '#16A34A',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.4,
-          shadowRadius: 10,
-          elevation: 8,
-        }}
-      >
-        <Plus size={24} color="#FFFFFF" strokeWidth={2.5} />
-      </TouchableOpacity>
+      {customers.length > 0 && (
+        <TouchableOpacity
+          onPress={openSheet}
+          activeOpacity={0.85}
+          className="absolute right-5 w-14 h-14 rounded-full bg-green-600 items-center justify-center"
+          style={{
+            bottom: insets.bottom + 90,
+            shadowColor: '#16A34A',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.4,
+            shadowRadius: 10,
+            elevation: 8,
+          }}
+        >
+          <Plus size={24} color="#FFFFFF" strokeWidth={2.5} />
+        </TouchableOpacity>
+      )}
 
-      {/* ── Add Customer Bottom Sheet ── */}
-      <BottomSheet
+      <AddCustomerSheet
         ref={sheetRef}
-        index={-1}
-        snapPoints={['60%']}
-        enablePanDownToClose
-        backdropComponent={renderBackdrop}
+        name={newName}
+        phone={newPhone}
+        creating={creating}
+        formVersion={formVersion}
+        onNameChange={setNewName}
+        onPhoneChange={setNewPhone}
+        onSubmit={handleCreate}
         onClose={resetForm}
-        handleIndicatorStyle={{ backgroundColor: '#E5E7EB', width: 36 }}
-        backgroundStyle={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
-      >
-        <BottomSheetView className="flex-1 px-5 pt-2 pb-8">
-          <Text className="text-[18px] font-bold text-gray-900 mb-5">Add Customer</Text>
-
-          <View className="gap-3 mb-6">
-            <TextInput
-              className="bg-gray-50 rounded-xl h-12 px-4 text-sm text-gray-900 border border-gray-100"
-              placeholder="Customer name"
-              placeholderTextColor="#9CA3AF"
-              value={newName}
-              onChangeText={setNewName}
-              autoCapitalize="words"
-              returnKeyType="next"
-            />
-            <TextInput
-              className="bg-gray-50 rounded-xl h-12 px-4 text-sm text-gray-900 border border-gray-100"
-              placeholder="Phone number (optional)"
-              placeholderTextColor="#9CA3AF"
-              value={newPhone}
-              onChangeText={setNewPhone}
-              keyboardType="phone-pad"
-              returnKeyType="next"
-            />
-            <TextInput
-              className="bg-gray-50 rounded-xl h-12 px-4 text-sm text-gray-900 border border-gray-100"
-              placeholder="Notes (optional)"
-              placeholderTextColor="#9CA3AF"
-              value={newNotes}
-              onChangeText={setNewNotes}
-              returnKeyType="done"
-            />
-          </View>
-
-          <TouchableOpacity
-            onPress={handleCreate}
-            activeOpacity={0.85}
-            disabled={!newName.trim() || creating}
-            className={`h-[52px] rounded-xl items-center justify-center ${!newName.trim() ? 'bg-green-200' : 'bg-green-600'}`}
-          >
-            <Text className="text-[15px] font-bold text-white">Create Customer</Text>
-          </TouchableOpacity>
-        </BottomSheetView>
-      </BottomSheet>
+      />
     </View>
   );
 }
