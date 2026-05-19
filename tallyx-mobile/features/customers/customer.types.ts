@@ -33,9 +33,11 @@ export interface CustomerCredit {
   amount: number;
   balance: number;
   status: string;
+  note?: string | null;
   date: string;
   dueDate?: string | null;
   stellarTxHash?: string | null;
+  syncStatus?: string | null;
 }
 
 export interface CustomerPayment {

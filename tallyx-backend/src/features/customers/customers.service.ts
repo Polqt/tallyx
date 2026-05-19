@@ -30,6 +30,13 @@ function toQrIdentity(customerId: string, storeId: string) {
   });
 }
 
+function getCreditStatus(credit: typeof credits.$inferSelect) {
+  if (credit.status === "paid") return "paid";
+  if (credit.dueDate && credit.dueDate < new Date() && toNumber(credit.balance) > 0) return "overdue";
+  if (credit.status === "partial") return "partial";
+  return "pending";
+}
+
 export async function getCustomersForUser(userId: string, query: ListCustomersQuery) {
   const storeId = await getStoreIdForUser(userId);
   const search = query.q?.trim();
@@ -135,10 +142,12 @@ export async function getCustomerForUser(userId: string, id: string) {
       id: credit.id,
       amount: toNumber(credit.amount),
       balance: toNumber(credit.balance),
-      status: credit.status,
+      status: getCreditStatus(credit),
+      note: credit.note,
       date: credit.createdAt.toISOString(),
       dueDate: credit.dueDate?.toISOString() ?? null,
       stellarTxHash: credit.stellarTxHash,
+      syncStatus: credit.syncStatus,
     })),
     payments: customerPayments.map((payment) => ({
       id: payment.id,
