@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, QrCode, TrendingUp } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, QrCode, ReceiptText, TrendingUp } from 'lucide-react-native';
+import QRCode from 'react-native-qrcode-svg';
 import { useAuth } from '@/context/AuthContext';
 import { fetchCustomerDetail } from '@/features/customers/customer.service';
 import type { CustomerDetail } from '@/features/customers/customer.types';
@@ -19,18 +21,15 @@ export default function CustomerDetailScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token || !id) return;
+    if (!token || !id) { setLoading(false); return; }
 
-    const authToken = token;
-    const customerId = id;
     const controller = new AbortController();
 
     async function loadCustomer() {
       setLoading(true);
       setError(null);
-
       try {
-        const data = await fetchCustomerDetail(authToken, customerId, controller.signal);
+        const data = await fetchCustomerDetail(token!, id as string, controller.signal);
         setCustomer(data);
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
@@ -46,169 +45,204 @@ export default function CustomerDetailScreen() {
 
   const color = getCustomerAvatarColor(customer?.name ?? 'Customer');
 
+  function openQrScreen() {
+    if (!customer) return;
+    haptics.light();
+    router.push(
+      `/(protected)/customers/qr?id=${customer.id}&name=${encodeURIComponent(customer.name)}&qr=${encodeURIComponent(customer.qrIdentity)}` as any
+    );
+  }
+
+  function openCreditHistory() {
+    if (!customer) return;
+    haptics.light();
+    router.push(`/(protected)/(tabs)/credits?customerId=${customer.id}` as any);
+  }
+
+  function openPaymentHistory() {
+    if (!customer) return;
+    haptics.light();
+    router.push(`/(protected)/(tabs)/payments?customerId=${customer.id}` as any);
+  }
+
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
+    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+      <View className="flex-row items-center justify-between border-b border-gray-100 px-5 py-3.5">
         <TouchableOpacity
           onPress={() => { haptics.light(); router.back(); }}
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={styles.backBtn}
+          className="h-9 w-9 items-center justify-center rounded-full bg-gray-100"
         >
           <ChevronLeft size={20} color="#111827" strokeWidth={2.5} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Customer</Text>
-        <TouchableOpacity
-          onPress={() => {
-            if (!customer) return;
-            haptics.light();
-            router.push(`/(protected)/customers/qr?id=${customer.id}&name=${encodeURIComponent(customer.name)}` as any);
-          }}
-          activeOpacity={0.7}
-          style={styles.qrBtn}
-        >
+        <Text className="text-[17px] font-bold text-gray-900">Customer</Text>
+        <TouchableOpacity onPress={openQrScreen} activeOpacity={0.7} className="h-9 w-9 items-center justify-center rounded-full bg-green-50">
           <QrCode size={18} color="#16A34A" strokeWidth={2} />
         </TouchableOpacity>
       </View>
 
       {loading ? (
-        <View style={styles.centerState}>
+        <View className="flex-1 items-center justify-center px-7">
           <ActivityIndicator size="small" color="#16A34A" />
-          <Text style={styles.centerSubtitle}>Loading customer...</Text>
+          <Text className="mt-2.5 text-center text-[13px] text-gray-400">Loading customer...</Text>
         </View>
       ) : error ? (
-        <View style={styles.centerState}>
-          <Text style={styles.errorTitle}>Customer unavailable</Text>
-          <Text style={styles.centerSubtitle}>{error}</Text>
+        <View className="flex-1 items-center justify-center px-7">
+          <Text className="text-base font-bold text-amber-700">Customer unavailable</Text>
+          <Text className="mt-2 text-center text-[13px] leading-5 text-gray-400">{error}</Text>
         </View>
       ) : customer ? (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}
-        >
-          <View style={styles.hero}>
-            <View style={[styles.avatar, { backgroundColor: color }]}>
-              <Text style={styles.avatarText}>{customer.name[0]?.toUpperCase() ?? '?'}</Text>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 36 }}>
+
+          <View className="items-center px-5 pb-5 pt-7">
+            <View className="mb-3.5 h-[72px] w-[72px] items-center justify-center rounded-full" style={{ backgroundColor: color }}>
+              <Text className="text-[28px] font-bold text-white">{customer.name[0]?.toUpperCase() ?? '?'}</Text>
             </View>
-            <Text style={styles.name}>{customer.name}</Text>
-            {customer.phone ? (
-              <Text style={styles.phone}>{customer.phone}</Text>
-            ) : null}
-            <View style={[
-              styles.balancePill,
-              customer.balance > 0 ? styles.balancePillOwed : styles.balancePillClear,
-            ]}>
-              <Text style={[
-                styles.balancePillText,
-                customer.balance > 0 ? styles.balancePillTextOwed : styles.balancePillTextClear,
-              ]}>
+            <Text className="text-[22px] font-bold text-gray-900">{customer.name}</Text>
+            <Text className="mb-3.5 mt-1 text-sm text-gray-500">
+              {customer.phone ? `+63${customer.phone}` : 'No phone number'}
+            </Text>
+            <View className={`rounded-[20px] px-4 py-[7px] ${customer.balance > 0 ? 'bg-amber-50' : 'bg-green-50'}`}>
+              <Text className={`text-[13px] font-semibold ${customer.balance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
                 {customer.balance > 0 ? `${formatPeso(customer.balance)} outstanding` : 'All settled'}
               </Text>
             </View>
           </View>
 
-          <View style={styles.statsStrip}>
-            <View style={styles.statCol}>
-              <Text style={styles.statNumber}>{formatPeso(customer.totalCredit)}</Text>
-              <Text style={styles.statLabel}>Total Credit</Text>
+          <View className="mx-5 items-center rounded-3xl border border-gray-100 bg-white p-5" style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 12 }}>
+            <View className="rounded-[18px] bg-white p-3">
+              <QRCode value={customer.qrIdentity} size={160} color="#111827" backgroundColor="#FFFFFF" />
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statCol}>
-              <Text style={styles.statNumber}>{formatPeso(customer.totalPaid)}</Text>
-              <Text style={styles.statLabel}>Total Paid</Text>
+            <Text className="mt-3 text-[15px] font-bold text-gray-900">Customer QR identity</Text>
+            <Text className="mt-1 text-center text-[12px] text-gray-400" selectable>{customer.qrIdentity}</Text>
+          </View>
+
+          <View className="flex-row px-5 py-[22px]">
+            <View className="flex-1 items-center">
+              <Text className="text-[20px] font-bold text-gray-900">{formatPeso(customer.totalCredit)}</Text>
+              <Text className="mt-0.5 text-[12px] text-gray-500">Total Credit</Text>
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statCol}>
-              <Text style={[styles.statNumber, customer.balance > 0 && { color: '#D97706' }]}>
+            <View className="my-1 w-px bg-gray-100" />
+            <View className="flex-1 items-center">
+              <Text className="text-[20px] font-bold text-gray-900">{formatPeso(customer.totalPaid)}</Text>
+              <Text className="mt-0.5 text-[12px] text-gray-500">Total Paid</Text>
+            </View>
+            <View className="my-1 w-px bg-gray-100" />
+            <View className="flex-1 items-center">
+              <Text className={`text-[20px] font-bold ${customer.balance > 0 ? 'text-amber-600' : 'text-gray-900'}`}>
                 {formatPeso(customer.balance)}
               </Text>
-              <Text style={styles.statLabel}>Balance</Text>
+              <Text className="mt-0.5 text-[12px] text-gray-500">Balance</Text>
             </View>
           </View>
-          <View style={styles.stripDivider} />
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Credit History</Text>
-
-            {customer.credits.length === 0 ? (
-              <View style={styles.emptyWrap}>
-                <TrendingUp size={28} color="#D1D5DB" strokeWidth={1.8} />
-                <Text style={styles.emptyTitle}>No credits yet</Text>
-                <Text style={styles.emptySubtitle}>
-                  Credits you record for this customer will appear here.
-                </Text>
-              </View>
-            ) : (
-              customer.credits.map((credit) => (
-                <View key={credit.id} style={styles.creditRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.creditAmount}>{formatPeso(credit.amount)}</Text>
-                    <Text style={styles.creditNote}>Balance: {formatPeso(credit.balance)}</Text>
+          {/* Credit History */}
+          <View className="mx-5 mt-6" style={{ borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(22,163,74,0.2)' }}>
+            <BlurView intensity={55} tint="light" style={{ padding: 16 }}>
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(240,253,244,0.6)' }} />
+              <TouchableOpacity onPress={openCreditHistory} activeOpacity={0.75} className="flex-row items-center justify-between pb-3">
+                <View className="flex-row items-center gap-2">
+                  <View className="h-7 w-7 items-center justify-center rounded-full bg-green-100">
+                    <TrendingUp size={14} color="#16A34A" strokeWidth={2.5} />
                   </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <View style={[styles.statusPill, credit.status === 'paid' ? styles.statusPaid : styles.statusOpen]}>
-                      <Text style={[styles.statusText, credit.status === 'paid' ? styles.statusTextPaid : styles.statusTextOpen]}>
-                        {credit.status === 'paid' ? 'Paid' : 'Open'}
-                      </Text>
-                    </View>
-                    <Text style={styles.creditDate}>{formatDashboardDate(credit.date)}</Text>
-                  </View>
+                  <Text className="text-[13px] font-bold uppercase tracking-[1.5px] text-green-800">Credit History</Text>
                 </View>
-              ))
-            )}
+                <View className="flex-row items-center gap-1">
+                  <Text className="text-[12px] font-medium text-green-600">See all</Text>
+                  <ChevronRight size={14} color="#16A34A" strokeWidth={2.5} />
+                </View>
+              </TouchableOpacity>
+
+              {customer.credits.length === 0 ? (
+                <View className="items-center py-7">
+                  <Text className="text-[14px] font-semibold text-green-900">No credits yet</Text>
+                  <Text className="mt-1 text-center text-[12px] leading-5 text-green-700/60">
+                    Credits recorded for this customer will appear here.
+                  </Text>
+                </View>
+              ) : (
+                customer.credits.map((credit, i) => (
+                  <View
+                    key={credit.id}
+                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderTopWidth: i === 0 ? 1 : 0, borderTopColor: 'rgba(22,163,74,0.12)', borderBottomWidth: i < customer.credits.length - 1 ? 1 : 0, borderBottomColor: 'rgba(22,163,74,0.12)' }}
+                  >
+                    <View className="flex-row items-center gap-3 flex-1">
+                      <View className={`h-8 w-8 items-center justify-center rounded-full ${credit.status === 'paid' ? 'bg-green-100' : 'bg-amber-50'}`}>
+                        <TrendingUp size={14} color={credit.status === 'paid' ? '#16A34A' : '#D97706'} strokeWidth={2} />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-[15px] font-bold text-gray-900">{formatPeso(credit.amount)}</Text>
+                        <Text className="mt-0.5 text-[12px] text-gray-500">Remaining {formatPeso(credit.balance)}</Text>
+                      </View>
+                    </View>
+                    <View className="items-end gap-1">
+                      <View className={`rounded-full px-2.5 py-0.5 ${credit.status === 'paid' ? 'bg-green-100' : 'bg-amber-100'}`}>
+                        <Text className={`text-[11px] font-bold ${credit.status === 'paid' ? 'text-green-700' : 'text-amber-700'}`}>
+                          {credit.status === 'paid' ? 'Paid' : 'Open'}
+                        </Text>
+                      </View>
+                      <Text className="text-[11px] text-gray-400">{formatDashboardDate(credit.date)}</Text>
+                    </View>
+                  </View>
+                ))
+              )}
+            </BlurView>
           </View>
+
+          <View className="mx-5 my-5 flex-row items-center gap-3">
+            <View className="flex-1 h-px bg-gray-100" />
+            <Text className="text-[10px] font-bold uppercase tracking-[2px] text-gray-300">Activity</Text>
+            <View className="flex-1 h-px bg-gray-100" />
+          </View>
+
+          <View className="mx-5" style={{ borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(37,99,235,0.2)' }}>
+            <BlurView intensity={55} tint="light" style={{ padding: 16 }}>
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(239,246,255,0.6)' }} />
+              <TouchableOpacity onPress={openPaymentHistory} activeOpacity={0.75} className="flex-row items-center justify-between pb-3">
+                <View className="flex-row items-center gap-2">
+                  <View className="h-7 w-7 items-center justify-center rounded-full bg-blue-100">
+                    <ReceiptText size={14} color="#2563EB" strokeWidth={2.5} />
+                  </View>
+                  <Text className="text-[13px] font-bold uppercase tracking-[1.5px] text-blue-800">Payment History</Text>
+                </View>
+                <View className="flex-row items-center gap-1">
+                  <Text className="text-[12px] font-medium text-blue-600">See all</Text>
+                  <ChevronRight size={14} color="#2563EB" strokeWidth={2.5} />
+                </View>
+              </TouchableOpacity>
+
+              {customer.payments.length === 0 ? (
+                <View className="items-center py-7">
+                  <Text className="text-[14px] font-semibold text-blue-900">No payments yet</Text>
+                  <Text className="mt-1 text-center text-[12px] leading-5 text-blue-700/60">
+                    Payments collected from this customer will appear here.
+                  </Text>
+                </View>
+              ) : (
+                customer.payments.map((payment, i) => (
+                  <View
+                    key={payment.id}
+                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderTopWidth: i === 0 ? 1 : 0, borderTopColor: 'rgba(37,99,235,0.12)', borderBottomWidth: i < customer.payments.length - 1 ? 1 : 0, borderBottomColor: 'rgba(37,99,235,0.12)' }}
+                  >
+                    <View className="flex-row items-center gap-3 flex-1">
+                      <View className="h-8 w-8 items-center justify-center rounded-full bg-blue-100">
+                        <ReceiptText size={14} color="#2563EB" strokeWidth={2} />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-[15px] font-bold text-gray-900">{formatPeso(payment.amount)}</Text>
+                        <Text className="mt-0.5 text-[12px] text-gray-500">Payment received</Text>
+                      </View>
+                    </View>
+                    <Text className="text-[11px] text-gray-400">{formatDashboardDate(payment.date)}</Text>
+                  </View>
+                ))
+              )}
+            </BlurView>
+          </View>
+
         </ScrollView>
       ) : null}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen:               { flex: 1, backgroundColor: '#FFFFFF' },
-
-  header:               { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  backBtn:              { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
-  headerTitle:          { fontFamily: 'Geist_700Bold', fontSize: 17, color: '#111827' },
-  qrBtn:                { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F0FDF4', alignItems: 'center', justifyContent: 'center' },
-
-  centerState:          { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
-  centerSubtitle:       { fontFamily: 'Geist_400Regular', fontSize: 13, color: '#9CA3AF', textAlign: 'center', marginTop: 10, lineHeight: 20 },
-  errorTitle:           { fontFamily: 'Geist_700Bold', fontSize: 16, color: '#B45309' },
-
-  hero:                 { alignItems: 'center', paddingTop: 32, paddingBottom: 24, paddingHorizontal: 20 },
-  avatar:               { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  avatarText:           { fontFamily: 'Geist_700Bold', fontSize: 28, color: '#FFFFFF' },
-  name:                 { fontFamily: 'Geist_700Bold', fontSize: 22, color: '#111827', marginBottom: 4 },
-  phone:                { fontFamily: 'Geist_400Regular', fontSize: 14, color: '#6B7280', marginBottom: 14 },
-  balancePill:          { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20, marginTop: 4 },
-  balancePillOwed:      { backgroundColor: '#FFFBEB' },
-  balancePillClear:     { backgroundColor: '#F0FDF4' },
-  balancePillText:      { fontFamily: 'Geist_600SemiBold', fontSize: 13 },
-  balancePillTextOwed:  { color: '#D97706' },
-  balancePillTextClear: { color: '#16A34A' },
-
-  statsStrip:           { flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 20 },
-  statCol:              { flex: 1, alignItems: 'center' },
-  statNumber:           { fontFamily: 'Geist_700Bold', fontSize: 20, color: '#111827' },
-  statLabel:            { fontFamily: 'Geist_400Regular', fontSize: 12, color: '#6B7280', marginTop: 3 },
-  statDivider:          { width: 1, backgroundColor: '#F3F4F6', marginVertical: 4 },
-  stripDivider:         { height: 1, backgroundColor: '#F3F4F6' },
-
-  section:              { paddingHorizontal: 20, paddingTop: 24 },
-  sectionTitle:         { fontFamily: 'Geist_700Bold', fontSize: 17, color: '#111827', marginBottom: 16 },
-
-  emptyWrap:            { alignItems: 'center', paddingVertical: 40 },
-  emptyTitle:           { fontFamily: 'Geist_700Bold', fontSize: 15, color: '#374151', marginTop: 14 },
-  emptySubtitle:        { fontFamily: 'Geist_400Regular', fontSize: 13, color: '#9CA3AF', textAlign: 'center', marginTop: 4, lineHeight: 20 },
-
-  creditRow:            { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F9FAFB' },
-  creditAmount:         { fontFamily: 'Geist_700Bold', fontSize: 15, color: '#111827' },
-  creditNote:           { fontFamily: 'Geist_400Regular', fontSize: 13, color: '#6B7280', marginTop: 2 },
-  creditDate:           { fontFamily: 'Geist_400Regular', fontSize: 11, color: '#9CA3AF', marginTop: 4 },
-  statusPill:           { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  statusOpen:           { backgroundColor: '#FFFBEB' },
-  statusPaid:           { backgroundColor: '#F0FDF4' },
-  statusText:           { fontFamily: 'Geist_600SemiBold', fontSize: 11 },
-  statusTextOpen:       { color: '#D97706' },
-  statusTextPaid:       { color: '#16A34A' },
-});

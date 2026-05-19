@@ -1,7 +1,7 @@
 import { and, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db } from "../../db/client.js";
-import { credits, customers, stores } from "../../db/schema.js";
+import { credits, customers, payments, stores } from "../../db/schema.js";
 import { AppError } from "../../middleware/errorHandler.js";
 import type { CreateCustomerInput, ListCustomersQuery } from "./customers.schema.js";
 
@@ -19,6 +19,15 @@ async function getStoreIdForUser(userId: string) {
 function toNumber(value: string | null | undefined) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toQrIdentity(customerId: string, storeId: string) {
+  return JSON.stringify({
+    type: "tallyx_customer_identity",
+    version: 1,
+    customerId,
+    storeId,
+  });
 }
 
 export async function getCustomersForUser(userId: string, query: ListCustomersQuery) {
@@ -70,6 +79,7 @@ export async function getCustomersForUser(userId: string, query: ListCustomersQu
 
     return {
       ...customer,
+      qrIdentity: toQrIdentity(customer.id, customer.storeId),
       balance,
       lastTransactionDate: lastCredit?.createdAt.toISOString() ?? null,
     };
@@ -103,11 +113,21 @@ export async function getCustomerForUser(userId: string, id: string) {
     .where(and(eq(credits.customerId, id), eq(credits.storeId, storeId)))
     .orderBy(desc(credits.createdAt));
 
+  const creditIds = customerCredits.map((credit) => credit.id);
+  const customerPayments = creditIds.length
+    ? await db
+        .select()
+        .from(payments)
+        .where(inArray(payments.creditId, creditIds))
+        .orderBy(desc(payments.createdAt))
+    : [];
+
   const totalCredit = customerCredits.reduce((sum, credit) => sum + toNumber(credit.amount), 0);
   const balance = customerCredits.reduce((sum, credit) => sum + toNumber(credit.balance), 0);
 
   return {
     ...customer,
+    qrIdentity: toQrIdentity(customer.id, customer.storeId),
     balance,
     totalCredit,
     totalPaid: totalCredit - balance,
@@ -119,6 +139,13 @@ export async function getCustomerForUser(userId: string, id: string) {
       date: credit.createdAt.toISOString(),
       dueDate: credit.dueDate?.toISOString() ?? null,
       stellarTxHash: credit.stellarTxHash,
+    })),
+    payments: customerPayments.map((payment) => ({
+      id: payment.id,
+      creditId: payment.creditId,
+      amount: toNumber(payment.amount),
+      date: payment.createdAt.toISOString(),
+      stellarTxHash: payment.stellarTxHash,
     })),
   };
 }
@@ -137,6 +164,7 @@ export async function createCustomerForUser(userId: string, input: CreateCustome
 
   return {
     ...customer,
+    qrIdentity: toQrIdentity(customer.id, customer.storeId),
     balance: 0,
     lastTransactionDate: null,
   };

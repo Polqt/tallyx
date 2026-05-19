@@ -24,10 +24,11 @@ const INACTIVE = '#9CA3AF';
 
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const { navOpacity } = useNavVisibility();
+  const { navOpacity, navInteractive } = useNavVisibility();
 
   return (
     <Animated.View
+      pointerEvents={navInteractive ? 'auto' : 'none'}
       style={{
         opacity: navOpacity,
         position: 'absolute',

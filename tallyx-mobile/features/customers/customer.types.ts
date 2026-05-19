@@ -1,5 +1,7 @@
 export interface CustomerListItem {
   id: string;
+  storeId: string;
+  qrIdentity: string;
   name: string;
   phone?: string | null;
   balance: number;
@@ -36,14 +38,25 @@ export interface CustomerCredit {
   stellarTxHash?: string | null;
 }
 
+export interface CustomerPayment {
+  id: string;
+  creditId: string;
+  amount: number;
+  date: string;
+  stellarTxHash?: string | null;
+}
+
 export interface CustomerDetail {
   id: string;
+  storeId: string;
+  qrIdentity: string;
   name: string;
   phone?: string | null;
   balance: number;
   totalCredit: number;
   totalPaid: number;
   credits: CustomerCredit[];
+  payments: CustomerPayment[];
 }
 
 export interface CreateCustomerInput {

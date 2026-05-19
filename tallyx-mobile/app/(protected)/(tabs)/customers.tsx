@@ -10,6 +10,7 @@ import { CustomerEmptyState } from '@/components/customers/customer-empty-state'
 import { CustomerListRow } from '@/components/customers/customer-list-row';
 import { CustomerSearchBar } from '@/components/customers/customer-search-bar';
 import { useAuth } from '@/context/AuthContext';
+import { useNavVisibility } from '@/context/NavVisibilityContext';
 import { createCustomer, fetchCustomers } from '@/features/customers/customer.service';
 import type { CustomerListItem } from '@/features/customers/customer.types';
 import { haptics } from '@/utils/haptics';
@@ -18,6 +19,7 @@ import { haptics } from '@/utils/haptics';
 export default function Customers() {
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
+  const { hideNav, showNav } = useNavVisibility();
   const [customers, setCustomers] = useState<CustomerListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -107,10 +109,17 @@ export default function Customers() {
 
   function openSheet() {
     haptics.light();
+    hideNav();
     sheetRef.current?.expand();
   }
 
   function resetForm() {
+    setNewName('');
+    setNewPhone('');
+    showNav();
+  }
+
+  function clearForm() {
     setNewName('');
     setNewPhone('');
   }
@@ -139,9 +148,10 @@ export default function Customers() {
       fadeAnims.current[customer.id] = new Animated.Value(0);
       setCustomers((prev) => [customer, ...prev]);
       setTotalCustomers((total) => total + 1);
-      resetForm();
+      clearForm();
       sheetRef.current?.close();
       haptics.success();
+      router.push(`/(protected)/customers/${customer.id}` as any);
 
       setTimeout(() => {
         Animated.timing(fadeAnims.current[customer.id], {
