@@ -1,4 +1,4 @@
-import * as SecureStore from 'expo-secure-store';
+import { SecureStore } from '@/utils/secure-store';
 import type { AuthSession, AuthUser, StoreProfileResponse } from './auth.types';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';

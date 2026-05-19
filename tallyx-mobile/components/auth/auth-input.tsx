@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, TextInputProps } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
+import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 
 interface Props extends TextInputProps {
   icon: React.ReactNode;
@@ -8,14 +9,26 @@ interface Props extends TextInputProps {
   showToggle?: boolean;
   error?: string;
   prefix?: string;
+  isBottomSheet?: boolean;
 }
 
-export function AuthInput({ icon, label, showToggle, secureTextEntry, error, prefix, style, ...props }: Props) {
+export function AuthInput({
+  icon,
+  label,
+  showToggle,
+  secureTextEntry,
+  error,
+  prefix,
+  isBottomSheet,
+  style,
+  ...props
+}: Props) {
   const [hidden, setHidden] = useState(secureTextEntry ?? false);
   const [focused, setFocused] = useState(false);
 
   const hasValue = typeof props.value === 'string' && props.value.length > 0;
   const elevated = focused || hasValue;
+  const InputComponent = isBottomSheet ? BottomSheetTextInput : TextInput;
 
   return (
     <View>
@@ -51,7 +64,7 @@ export function AuthInput({ icon, label, showToggle, secureTextEntry, error, pre
               {prefix}
             </Text>
           )}
-          <TextInput
+          <InputComponent
             style={{
               flex: 1,
               fontSize: 15,
@@ -64,7 +77,7 @@ export function AuthInput({ icon, label, showToggle, secureTextEntry, error, pre
             secureTextEntry={showToggle ? hidden : secureTextEntry}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            {...props}
+            {...(props as any)}
           />
           {showToggle && (
             <TouchableOpacity
