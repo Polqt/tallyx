@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, BackHandler, FlatList, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, BackHandler, FlatList, Modal, Pressable, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FileText, Plus } from 'lucide-react-native';
+import { ChevronDown, FileText, Plus } from 'lucide-react-native';
 import BottomSheet from '@gorhom/bottom-sheet';
 import Toast from 'react-native-toast-message';
 import { AddCreditSheet } from '@/components/credits/add-credit-sheet';
@@ -10,7 +10,7 @@ import { CreditRow } from '@/components/credits/credit-row';
 import { useAuth } from '@/context/AuthContext';
 import { useNavVisibility } from '@/context/NavVisibilityContext';
 import { createCredit, fetchCredits } from '@/features/credits/credit.service';
-import type { CreditListItem } from '@/features/credits/credit.types';
+import type { CreditListItem, CreditStatus } from '@/features/credits/credit.types';
 import { parseDueDate, parsePesoAmount } from '@/utils/credit';
 import { formatPeso } from '@/utils/dashboard';
 import { haptics } from '@/utils/haptics';
@@ -36,6 +36,8 @@ export default function Credits() {
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<CreditStatus | undefined>(undefined);
+  const [filterPickerVisible, setFilterPickerVisible] = useState(false);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
@@ -55,7 +57,7 @@ export default function Credits() {
       pulseAnim.setValue(1);
     }
     return () => pulseLoop.current?.stop();
-  }, [credits?.length, loading, pulseAnim]);
+  }, [credits, credits.length, loading, pulseAnim]);
 
   useFocusEffect(
     useCallback(() => {
@@ -83,7 +85,7 @@ export default function Credits() {
     else setLoadError(null);
 
     try {
-      const data = await fetchCredits(token, { page: nextPage, limit: 20, customerId });
+      const data = await fetchCredits(token, { page: nextPage, limit: 20, customerId, status: statusFilter });
       setCredits((prev) => append ? [...prev, ...(data?.items || [])] : (data?.items || []));
       setPage(data?.pagination?.page ?? 1);
       setHasMore(data?.pagination?.hasMore ?? false);
@@ -98,7 +100,7 @@ export default function Credits() {
       setRefreshing(false);
       setLoadingMore(false);
     }
-  }, [customerId, token]);
+  }, [customerId, statusFilter, token]);
 
   useFocusEffect(
     useCallback(() => {
@@ -106,6 +108,12 @@ export default function Credits() {
       loadCredits(1);
     }, [loadCredits])
   );
+
+  const handleFilterChange = useCallback((status: CreditStatus | undefined) => {
+    haptics.light();
+    setStatusFilter(status);
+    setLoading(true);
+  }, []);
 
   function openSheet() {
     haptics.light();
@@ -229,23 +237,29 @@ export default function Credits() {
       </View>
 
       {/* Section label row */}
-      <View className="flex-row items-center justify-between px-1">
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 }}>
         <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>
           {customerId ? 'Customer Credits' : 'Recent Credits'}
         </Text>
-        <View
+        <TouchableOpacity
+          onPress={() => { haptics.light(); setFilterPickerVisible(true); }}
+          activeOpacity={0.7}
           style={{
-            backgroundColor: '#F3F4F6',
-            borderRadius: 12,
-            paddingHorizontal: 10,
-            paddingVertical: 4,
+            flexDirection: 'row', alignItems: 'center', gap: 4,
+            backgroundColor: statusFilter ? '#F0FDF4' : '#FFFFFF',
+            borderWidth: 1, borderColor: statusFilter ? '#86EFAC' : '#E5E7EB',
+            borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6,
           }}
         >
-          <Text style={{ fontSize: 12, color: '#6B7280' }}>{credits?.length ?? 0}</Text>
-        </View>
+          <Text style={{ fontSize: 13, fontWeight: '500', color: statusFilter ? '#16A34A' : '#374151' }}>
+            {statusFilter ? statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1) : 'All'}
+          </Text>
+          <ChevronDown size={13} color={statusFilter ? '#16A34A' : '#6B7280'} strokeWidth={2} />
+        </TouchableOpacity>
       </View>
+
     </View>
-  ), [credits?.length, customerId, overdueAmount, totalReceivables]);
+  ), [customerId, overdueAmount, statusFilter, totalReceivables]);
 
   const renderFooter = useCallback(() => {
     if (!loadingMore) return null;
@@ -276,7 +290,7 @@ export default function Credits() {
           ListHeaderComponent={renderHeader}
           ListFooterComponent={renderFooter}
           ListEmptyComponent={
-            <View className="items-center px-8 py-12">
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingVertical: 80 }}>
               <View
                 style={{
                   width: 56,
@@ -290,11 +304,13 @@ export default function Credits() {
               >
                 <FileText size={24} color="#16A34A" strokeWidth={1.8} />
               </View>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 8 }}>
-                No credits yet
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 8, textAlign: 'center' }}>
+                {statusFilter ? `No ${statusFilter} credits` : 'No credits yet'}
               </Text>
               <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 20 }}>
-                {"Record a customer's utang and it will appear here."}
+                {statusFilter
+                  ? 'Try a different filter to see other credits.'
+                  : "Record a customer's utang and it will appear here."}
               </Text>
             </View>
           }
@@ -352,6 +368,54 @@ export default function Credits() {
         onSubmit={handleSave}
         onClose={handleSheetClose}
       />
+
+      <Modal
+        visible={filterPickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFilterPickerVisible(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}
+          onPress={() => setFilterPickerVisible(false)}
+        >
+          <Pressable onPress={() => {}}>
+            <View style={{
+              backgroundColor: '#FFFFFF',
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              paddingTop: 12,
+              paddingBottom: insets.bottom + 24,
+            }}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#E5E7EB', alignSelf: 'center', marginBottom: 20 }} />
+              <Text style={{ fontSize: 15, fontWeight: '600', color: '#111827', paddingHorizontal: 20, marginBottom: 12 }}>
+                Filter by status
+              </Text>
+              {([undefined, 'pending', 'partial', 'overdue', 'paid'] as (CreditStatus | undefined)[]).map((s) => {
+                const label = s === undefined ? 'All credits' : s.charAt(0).toUpperCase() + s.slice(1);
+                const active = statusFilter === s;
+                return (
+                  <TouchableOpacity
+                    key={label}
+                    onPress={() => { handleFilterChange(s); setFilterPickerVisible(false); }}
+                    activeOpacity={0.7}
+                    style={{
+                      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                      paddingHorizontal: 20, paddingVertical: 14,
+                      backgroundColor: active ? '#F0FDF4' : 'transparent',
+                    }}
+                  >
+                    <Text style={{ fontSize: 15, fontWeight: active ? '600' : '400', color: active ? '#16A34A' : '#374151' }}>
+                      {label}
+                    </Text>
+                    {active && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#16A34A' }} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

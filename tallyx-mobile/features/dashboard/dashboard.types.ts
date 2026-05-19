@@ -7,12 +7,13 @@ export interface DashboardTotals {
 
 export interface DashboardActivity {
   id: string;
-  type: 'credit';
+  type: 'credit' | 'payment';
   title: string;
   amount: number;
   status: string;
   createdAt: string;
   stellarTxHash?: string | null;
+  customerName?: string | null;
 }
 
 export interface DashboardSummary {

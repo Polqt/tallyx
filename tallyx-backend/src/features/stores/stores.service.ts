@@ -1,7 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db } from "../../db/client.js";
-import { credits, customers, stores } from "../../db/schema.js";
+import { credits, customers, payments, stores } from "../../db/schema.js";
 import { AppError } from "../../middleware/errorHandler.js";
 import type { CreateStoreInput } from "./stores.schema.js";
 
@@ -49,9 +49,23 @@ export async function getStore(userId: string) {
 
 export async function getDashboardSummary(userId: string) {
   const { store } = await getStore(userId);
-  const [customerRows, creditRows] = await Promise.all([
+  const [customerRows, creditRows, paymentRows] = await Promise.all([
     db.select().from(customers).where(eq(customers.storeId, store.id)),
     db.select().from(credits).where(eq(credits.storeId, store.id)).orderBy(desc(credits.createdAt)),
+    db
+      .select({
+        id: payments.id,
+        amount: payments.amount,
+        paymentMethod: payments.paymentMethod,
+        stellarTxHash: payments.stellarTxHash,
+        createdAt: payments.createdAt,
+        customerName: customers.name,
+      })
+      .from(payments)
+      .innerJoin(credits, eq(payments.creditId, credits.id))
+      .innerJoin(customers, eq(credits.customerId, customers.id))
+      .where(eq(credits.storeId, store.id))
+      .orderBy(desc(payments.createdAt)),
   ]);
 
   const now = new Date();
@@ -60,6 +74,32 @@ export async function getDashboardSummary(userId: string) {
   const totalReceivables = openCredits.reduce((sum, credit) => sum + Number(credit.balance), 0);
   const overdueAmount = overdueCredits.reduce((sum, credit) => sum + Number(credit.balance), 0);
 
+  const creditActivity = creditRows.map((credit) => ({
+    id: credit.id,
+    type: "credit" as const,
+    title: "Credit recorded",
+    amount: Number(credit.amount),
+    status: credit.dueDate && credit.dueDate < now && Number(credit.balance) > 0 ? "overdue" : credit.status,
+    createdAt: credit.createdAt.toISOString(),
+    stellarTxHash: credit.stellarTxHash,
+    customerName: null as string | null,
+  }));
+
+  const paymentActivity = paymentRows.map((payment) => ({
+    id: payment.id,
+    type: "payment" as const,
+    title: "Payment received",
+    amount: Number(payment.amount),
+    status: "paid" as const,
+    createdAt: payment.createdAt.toISOString(),
+    stellarTxHash: payment.stellarTxHash,
+    customerName: payment.customerName,
+  }));
+
+  const recentActivity = [...creditActivity, ...paymentActivity]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 8);
+
   return {
     totals: {
       totalReceivables,
@@ -67,14 +107,6 @@ export async function getDashboardSummary(userId: string) {
       customerCount: customerRows.length,
       openCreditsCount: openCredits.length,
     },
-    recentActivity: creditRows.slice(0, 5).map((credit) => ({
-      id: credit.id,
-      type: "credit" as const,
-      title: "Credit recorded",
-      amount: Number(credit.amount),
-      status: credit.dueDate && credit.dueDate < now && Number(credit.balance) > 0 ? "overdue" : credit.status,
-      createdAt: credit.createdAt.toISOString(),
-      stellarTxHash: credit.stellarTxHash,
-    })),
+    recentActivity,
   };
 }

@@ -34,6 +34,7 @@ export interface FetchCreditsParams {
   page?: number;
   limit?: number;
   customerId?: string;
+  status?: CreditStatus;
   signal?: AbortSignal;
 }
 

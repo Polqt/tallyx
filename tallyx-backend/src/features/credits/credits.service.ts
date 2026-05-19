@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, gt, inArray, lt, ne } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db } from "../../db/client.js";
 import { credits, customers, stores } from "../../db/schema.js";
@@ -63,9 +63,21 @@ async function getCustomerNames(storeId: string, customerIds: string[]) {
 
 export async function getCreditsForUser(userId: string, query: ListCreditsQuery) {
   const storeId = await getStoreIdForUser(userId);
-  const whereClause = query.customerId
-    ? and(eq(credits.storeId, storeId), eq(credits.customerId, query.customerId))
-    : eq(credits.storeId, storeId);
+  const now = new Date();
+
+  const baseConditions = [
+    eq(credits.storeId, storeId),
+    ...(query.customerId ? [eq(credits.customerId, query.customerId)] : []),
+  ];
+
+  const statusConditions =
+    query.status === "overdue"
+      ? [ne(credits.status, "paid"), gt(credits.balance, "0"), lt(credits.dueDate, now)]
+      : query.status
+      ? [eq(credits.status, query.status)]
+      : [];
+
+  const whereClause = and(...baseConditions, ...statusConditions);
   const offset = (query.page - 1) * query.limit;
 
   const [creditRows, totalRows] = await Promise.all([

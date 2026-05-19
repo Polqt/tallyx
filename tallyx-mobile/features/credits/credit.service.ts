@@ -43,6 +43,7 @@ function buildCreditListPath(params: FetchCreditsParams) {
   });
 
   if (params.customerId) searchParams.set('customerId', params.customerId);
+  if (params.status) searchParams.set('status', params.status);
   return `/credits?${searchParams.toString()}`;
 }
 
