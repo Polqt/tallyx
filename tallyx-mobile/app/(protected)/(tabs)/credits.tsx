@@ -41,7 +41,7 @@ export default function Credits() {
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
-    if (credits.length === 0 && !loading) {
+    if ((credits || []).length === 0 && !loading) {
       pulseLoop.current = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, { toValue: 1.06, duration: 600, useNativeDriver: true }),
@@ -55,7 +55,7 @@ export default function Credits() {
       pulseAnim.setValue(1);
     }
     return () => pulseLoop.current?.stop();
-  }, [credits.length, loading, pulseAnim]);
+  }, [credits?.length, loading, pulseAnim]);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,11 +69,11 @@ export default function Credits() {
   );
 
   const totalReceivables = useMemo(
-    () => credits.filter((c) => c.status !== 'paid').reduce((sum, c) => sum + c.balance, 0),
+    () => (credits || []).filter((c) => c?.status !== 'paid').reduce((sum, c) => sum + (c?.balance ?? 0), 0),
     [credits]
   );
   const overdueAmount = useMemo(
-    () => credits.filter((c) => c.status === 'overdue').reduce((sum, c) => sum + c.balance, 0),
+    () => (credits || []).filter((c) => c?.status === 'overdue').reduce((sum, c) => sum + (c?.balance ?? 0), 0),
     [credits]
   );
 
@@ -84,9 +84,9 @@ export default function Credits() {
 
     try {
       const data = await fetchCredits(token, { page: nextPage, limit: 20, customerId });
-      setCredits((prev) => append ? [...prev, ...data.items] : data.items);
-      setPage(data.pagination.page);
-      setHasMore(data.pagination.hasMore);
+      setCredits((prev) => append ? [...prev, ...(data?.items || [])] : (data?.items || []));
+      setPage(data?.pagination?.page ?? 1);
+      setHasMore(data?.pagination?.hasMore ?? false);
     } catch (error) {
       if (append) {
         Toast.show({ type: 'error', text1: 'Could not load more credits', text2: error instanceof Error ? error.message : 'Please try again.', position: 'top' });
@@ -241,11 +241,11 @@ export default function Credits() {
             paddingVertical: 4,
           }}
         >
-          <Text style={{ fontSize: 12, color: '#6B7280' }}>{credits.length}</Text>
+          <Text style={{ fontSize: 12, color: '#6B7280' }}>{credits?.length ?? 0}</Text>
         </View>
       </View>
     </View>
-  ), [credits.length, customerId, overdueAmount, totalReceivables]);
+  ), [credits?.length, customerId, overdueAmount, totalReceivables]);
 
   const renderFooter = useCallback(() => {
     if (!loadingMore) return null;
