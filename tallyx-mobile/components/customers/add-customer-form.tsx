@@ -1,6 +1,5 @@
 import { ElementRef, useRef } from 'react';
-import { Text, View } from 'react-native';
-import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
+import { Text, TextInput, View } from 'react-native';
 import { formatPHPhone, stripFormatting } from '@/utils/customers';
 
 type AddCustomerFormProps = {
@@ -18,7 +17,7 @@ export function AddCustomerForm({
   onPhoneChange,
   onSubmit,
 }: AddCustomerFormProps) {
-  const phoneRef = useRef<ElementRef<typeof BottomSheetTextInput>>(null);
+  const phoneRef = useRef<ElementRef<typeof TextInput>>(null);
 
   function handlePhoneChange(text: string) {
     const digits = stripFormatting(text).slice(0, 10);
@@ -27,7 +26,7 @@ export function AddCustomerForm({
 
   return (
     <View className="gap-3">
-      <BottomSheetTextInput
+      <TextInput
         className="h-14 rounded-2xl border border-gray-100 bg-gray-50 px-4 text-[15px] text-gray-900"
         placeholder="Customer name"
         placeholderTextColor="#9CA3AF"
@@ -43,7 +42,7 @@ export function AddCustomerForm({
           <Text className="text-[15px] font-semibold text-gray-500">PH +63</Text>
         </View>
 
-        <BottomSheetTextInput
+        <TextInput
           ref={phoneRef}
           className="flex-1 px-4 text-[15px] text-gray-900"
           placeholder="9XX XXX XXXX"

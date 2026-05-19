@@ -3,7 +3,6 @@ import { ActivityIndicator, Animated, FlatList, Text, TouchableOpacity, View } f
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Plus, UsersRound } from 'lucide-react-native';
-import BottomSheet from '@gorhom/bottom-sheet';
 import Toast from 'react-native-toast-message';
 import { AddCustomerSheet } from '@/components/customers/add-customer-sheet';
 import { CustomerEmptyState } from '@/components/customers/customer-empty-state';
@@ -30,7 +29,7 @@ export default function Customers() {
   const [hasMore, setHasMore] = useState(false);
   const [totalCustomers, setTotalCustomers] = useState(0);
 
-  const sheetRef = useRef<BottomSheet>(null);
+  const [modalVisible, setModalVisible] = useState(false);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [creating, setCreating] = useState(false);
@@ -108,15 +107,16 @@ export default function Customers() {
   }, [debouncedQuery, hasMore, loading, loadingMore, page, token]);
 
   function openSheet() {
+    console.log('[CustomersTab] openSheet called - displaying AddCustomerSheet Modal');
     haptics.light();
-    hideNav();
-    sheetRef.current?.expand();
+    setModalVisible(true);
   }
 
   function resetForm() {
+    console.log('[CustomersTab] resetForm called - hiding AddCustomerSheet Modal');
+    setModalVisible(false);
     setNewName('');
     setNewPhone('');
-    showNav();
   }
 
   function clearForm() {
@@ -125,8 +125,17 @@ export default function Customers() {
   }
 
   async function handleCreate() {
-    if (!token || !newName.trim()) return;
+    console.log('[CustomersTab] handleCreate triggered', { newName, newPhone, hasToken: Boolean(token) });
+    if (!token) {
+      console.error('[CustomersTab] handleCreate aborted: Token is null or undefined!');
+      return;
+    }
+    if (!newName.trim()) {
+      console.warn('[CustomersTab] handleCreate aborted: Name field is blank!');
+      return;
+    }
     if (newPhone.trim() && newPhone.trim().length < 7) {
+      console.warn('[CustomersTab] handleCreate aborted: Phone number is invalid', { newPhone });
       Toast.show({
         type: 'error',
         text1: 'Check the phone number',
@@ -149,7 +158,7 @@ export default function Customers() {
       setCustomers((prev) => [customer, ...prev]);
       setTotalCustomers((total) => total + 1);
       clearForm();
-      sheetRef.current?.close();
+      setModalVisible(false);
       haptics.success();
       router.push(`/(protected)/customers/${customer.id}` as any);
 
@@ -190,7 +199,7 @@ export default function Customers() {
 
   const renderHeader = useCallback(() => (
     <View className="gap-4 pb-4">
-      <View className="rounded-[28px] bg-[#14532D] p-5" style={{ boxShadow: '0 12px 30px rgba(20, 83, 45, 0.16)' }}>
+      <View className="rounded-[28px] bg-[#14532D] p-8" style={{ boxShadow: '0 12px 30px rgba(20, 83, 45, 0.16)' }}>
         <View className="flex-row items-center justify-between">
           <View>
             <Text className="text-[12px] font-medium uppercase tracking-[2px] text-white/55">
@@ -280,7 +289,7 @@ export default function Customers() {
       )}
 
       <AddCustomerSheet
-        ref={sheetRef}
+        visible={modalVisible}
         name={newName}
         phone={newPhone}
         creating={creating}

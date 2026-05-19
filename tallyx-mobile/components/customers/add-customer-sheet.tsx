@@ -1,14 +1,11 @@
-import { forwardRef, useCallback } from 'react';
-import { Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import React from 'react';
+import { Modal, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import BottomSheet, {
-  BottomSheetBackdrop,
-  BottomSheetBackdropProps,
-  BottomSheetView,
-} from '@gorhom/bottom-sheet';
+import { X } from 'lucide-react-native';
 import { AddCustomerForm } from '@/components/customers/add-customer-form';
 
 type AddCustomerSheetProps = {
+  visible: boolean;
   name: string;
   phone: string;
   creating: boolean;
@@ -18,50 +15,68 @@ type AddCustomerSheetProps = {
   onClose: () => void;
 };
 
-export const AddCustomerSheet = forwardRef<BottomSheet, AddCustomerSheetProps>(
-  ({ name, phone, creating, onNameChange, onPhoneChange, onSubmit, onClose }, ref) => {
-    const insets = useSafeAreaInsets();
-    const { height: screenHeight } = useWindowDimensions();
-    const canSubmit = Boolean(name.trim()) && !creating;
+export function AddCustomerSheet({
+  visible,
+  name,
+  phone,
+  creating,
+  onNameChange,
+  onPhoneChange,
+  onSubmit,
+  onClose,
+}: AddCustomerSheetProps) {
+  const insets = useSafeAreaInsets();
+  const canSubmit = Boolean(name.trim()) && !creating;
 
-    const innerHeight = screenHeight * 0.60 - 20;
-
-    const renderBackdrop = useCallback(
-      (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />
-      ),
-      []
-    );
-
-    return (
-      <BottomSheet
-        ref={ref}
-        index={-1}
-        snapPoints={[`${0.60 * 100}%`]}
-        enablePanDownToClose
-        keyboardBehavior="interactive"
-        keyboardBlurBehavior="restore"
-        android_keyboardInputMode="adjustResize"
-        backdropComponent={renderBackdrop}
-        onClose={onClose}
-        handleIndicatorStyle={{ backgroundColor: '#D1D5DB', width: 40 }}
-        backgroundStyle={{ borderTopLeftRadius: 28, borderTopRightRadius: 28 }}
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1, backgroundColor: '#FFFFFF' }}
       >
-        <BottomSheetView
-          style={{
-            height: innerHeight,
-            paddingHorizontal: 20,
-            paddingTop: 12,
-            paddingBottom: insets.bottom + 16,
-            justifyContent: 'space-between',
-          }}
-        >
+        <View style={{ flex: 1, paddingTop: 20 }}>
+          {/* Header */}
+          <View 
+            style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              paddingHorizontal: 20, 
+              paddingBottom: 16, 
+              borderBottomWidth: 1, 
+              borderColor: '#F3F4F6' 
+            }}
+          >
+            <TouchableOpacity 
+              onPress={onClose} 
+              activeOpacity={0.7} 
+              style={{ 
+                width: 40, 
+                height: 40, 
+                borderRadius: 20, 
+                backgroundColor: '#F3F4F6', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}
+            >
+              <X size={20} color="#1F2937" strokeWidth={2.5} />
+            </TouchableOpacity>
+            <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 17, color: '#111827' }}>NEW CUSTOMER</Text>
+            <View style={{ width: 40 }} />
+          </View>
 
-          <View>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: insets.bottom + 24 }}
+          >
             <View className="mb-10 items-center">
-              <Text className="text-[24px] font-bold tracking-[2px] text-gray-900 uppercase">New Customer</Text>
-              <Text className="mt-2 text-[13px] leading-5 text-gray-400 text-center">
-                Credits and payments can be added after.
+              <Text className="text-[13px] leading-5 text-gray-400 text-center">
+                Credits and payments can be added after creating the customer profile.
               </Text>
             </View>
 
@@ -72,24 +87,25 @@ export const AddCustomerSheet = forwardRef<BottomSheet, AddCustomerSheetProps>(
               onPhoneChange={onPhoneChange}
               onSubmit={onSubmit}
             />
-          </View>
 
-          <TouchableOpacity
-            onPress={onSubmit}
-            activeOpacity={0.85}
-            disabled={!canSubmit}
-            className={`h-[54px] items-center justify-center rounded-2xl ${
-              canSubmit ? 'bg-green-600' : 'bg-green-200'
-            }`}
-          >
-            <Text className="text-[15px] font-bold text-white">
-              {creating ? 'Creating...' : 'Create Customer'}
-            </Text>
-          </TouchableOpacity>
-        </BottomSheetView>
-      </BottomSheet>
-    );
-  }
-);
-
-AddCustomerSheet.displayName = 'AddCustomerSheet';
+            <TouchableOpacity
+              onPress={() => {
+                console.log('[AddCustomerSheet] Create button pressed', { name, phone, canSubmit, creating });
+                onSubmit();
+              }}
+              activeOpacity={0.85}
+              disabled={!canSubmit}
+              className={`h-[54px] items-center justify-center rounded-2xl mt-8 ${
+                canSubmit ? 'bg-green-600' : 'bg-green-200'
+              }`}
+            >
+              <Text className="text-[15px] font-bold text-white">
+                {creating ? 'Creating...' : 'Create Customer'}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
