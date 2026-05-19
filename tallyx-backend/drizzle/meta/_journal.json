@@ -15,6 +15,13 @@
       "when": 1779111510625,
       "tag": "0001_lazy_lucky_pierre",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779181084385,
+      "tag": "0002_bizarre_justice",
+      "breakpoints": true
     }
   ]
 }

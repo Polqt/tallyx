@@ -72,7 +72,7 @@ export async function getDashboardSummary(userId: string) {
       type: "credit" as const,
       title: "Credit recorded",
       amount: Number(credit.amount),
-      status: credit.status,
+      status: credit.dueDate && credit.dueDate < now && Number(credit.balance) > 0 ? "overdue" : credit.status,
       createdAt: credit.createdAt.toISOString(),
       stellarTxHash: credit.stellarTxHash,
     })),

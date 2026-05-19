@@ -1,10 +1,16 @@
 import { z } from "zod";
 
 export const createCreditSchema = z.object({
-  storeId: z.string().uuid(),
   customerId: z.string().uuid(),
   amount: z.number().int().positive(),
   dueDate: z.string().datetime().optional(),
+  note: z.string().trim().max(280).optional(),
+});
+
+export const listCreditsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  customerId: z.string().uuid().optional(),
 });
 
 export const payCreditSchema = z.object({
@@ -12,4 +18,5 @@ export const payCreditSchema = z.object({
 });
 
 export type CreateCreditInput = z.infer<typeof createCreditSchema>;
+export type ListCreditsQuery = z.infer<typeof listCreditsQuerySchema>;
 export type PayCreditInput = z.infer<typeof payCreditSchema>;
