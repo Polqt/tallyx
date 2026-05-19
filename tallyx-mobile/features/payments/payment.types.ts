@@ -1,0 +1,25 @@
+export interface PaymentItem {
+  id: string;
+  creditId: string;
+  amount: string;
+  paymentMethod: 'cash' | 'usdc';
+  stellarTxHash: string | null;
+  createdAt: string;
+  credit: {
+    id: string;
+    amount: string;
+    balance: string;
+    status: 'active' | 'partial' | 'paid';
+  };
+  customer: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface RecordPaymentInput {
+  creditId: string;
+  amount: number;
+  paymentMethod: 'cash' | 'usdc';
+  stellarTxHash?: string;
+}

@@ -1,11 +1,12 @@
-import { SecureStore } from '@/utils/secure-store';
+import { SecureStore, type SecureStoreOptions } from '@/utils/secure-store';
+import { AFTER_FIRST_UNLOCK } from 'expo-secure-store';
 import type { AuthSession, AuthUser, StoreProfileResponse } from './auth.types';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 const TOKEN_KEY = 'auth_token';
 
-const secureStoreOptions: SecureStore.SecureStoreOptions = {
-  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+const secureStoreOptions: SecureStoreOptions = {
+  keychainAccessible: AFTER_FIRST_UNLOCK,
 };
 
 type ApiOptions = RequestInit & {
@@ -25,27 +26,35 @@ async function readJson(response: Response) {
 
 async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const { token, headers, ...requestOptions } = options;
-  const response = await fetch(`${API_URL}${path}`, {
-    ...requestOptions,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-  });
-  const data = await readJson(response);
+  const url = `${API_URL}${path}`;
+  console.log(`[API Request] Fetching: ${url}`, { method: options.method || 'GET' });
+  
+  try {
+    const response = await fetch(url, {
+      ...requestOptions,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
+      },
+    });
+    const data = await readJson(response);
 
-  if (!response.ok) {
-    const message =
-      typeof data.error === 'string'
-        ? data.error
-        : typeof data.message === 'string'
-          ? data.message
-          : 'Request failed';
-    throw new Error(message);
+    if (!response.ok) {
+      const message =
+        typeof data.error === 'string'
+          ? data.error
+          : typeof data.message === 'string'
+            ? data.message
+            : 'Request failed';
+      throw new Error(message);
+    }
+
+    return data as T;
+  } catch (err: any) {
+    console.error(`[API Request Error] Failed for ${url}:`, err);
+    throw err;
   }
-
-  return data as T;
 }
 
 export function getStoredAuthToken() {
