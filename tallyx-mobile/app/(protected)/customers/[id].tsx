@@ -46,7 +46,11 @@ export default function CustomerDetailScreen() {
   const color = getCustomerAvatarColor(customer?.name ?? 'Customer');
 
   function openQrScreen() {
-    if (!customer) return;
+    console.log('[CustomerDetailScreen] openQrScreen pressed', { customerId: customer?.id, customerName: customer?.name });
+    if (!customer) {
+      console.warn('[CustomerDetailScreen] openQrScreen aborted - customer detail object is empty!');
+      return;
+    }
     haptics.light();
     router.push(
       `/(protected)/customers/qr?id=${customer.id}&name=${encodeURIComponent(customer.name)}&qr=${encodeURIComponent(customer.qrIdentity)}` as any

@@ -48,6 +48,7 @@ export const payments = pgTable("payments", {
   id: text("id").primaryKey(),
   creditId: text("credit_id").notNull().references(() => credits.id),
   amount: text("amount").notNull(),
+  paymentMethod: text("payment_method").notNull().default("cash"),
   stellarTxHash: text("stellar_tx_hash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

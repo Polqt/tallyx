@@ -22,6 +22,13 @@
       "when": 1779181084385,
       "tag": "0002_bizarre_justice",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779206089738,
+      "tag": "0003_lovely_warbird",
+      "breakpoints": true
     }
   ]
 }
