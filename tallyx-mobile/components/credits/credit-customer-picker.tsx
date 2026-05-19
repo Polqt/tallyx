@@ -18,6 +18,7 @@ export function CreditCustomerPicker({ token, selectedCustomerId, onSelect, Text
   const [results, setResults] = useState<CustomerListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoaded, setInitialLoaded] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const [focused, setFocused] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -33,13 +34,15 @@ export function CreditCustomerPicker({ token, selectedCustomerId, onSelect, Text
     try {
       const data = await fetchCustomers(token, { page: 1, limit: 10, query: q, signal: controller.signal });
       setResults(data.items);
-      if (!initialLoaded) setInitialLoaded(true);
+      setFetchError(false);
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return;
+      setFetchError(true);
     } finally {
       setLoading(false);
+      setInitialLoaded(true);
     }
-  }, [initialLoaded, token]);
+  }, [token]);
 
   useEffect(() => {
     search('');
@@ -54,10 +57,11 @@ export function CreditCustomerPicker({ token, selectedCustomerId, onSelect, Text
   }, [initialLoaded, query, search]);
 
   useEffect(() => {
-    if (initialLoaded && !selectedCustomerId && results.length > 0) {
+    if (!initialLoaded || results.length === 0) return;
+    if (!selectedCustomerId || !selectedCustomer) {
       onSelect(results[0].id);
     }
-  }, [initialLoaded, onSelect, results, selectedCustomerId]);
+  }, [initialLoaded, onSelect, results, selectedCustomer, selectedCustomerId]);
 
   const visibleResults = selectedCustomerId && selectedCustomer && !query
     ? [selectedCustomer, ...results.filter((c) => c.id !== selectedCustomerId)]
@@ -104,6 +108,13 @@ export function CreditCustomerPicker({ token, selectedCustomerId, onSelect, Text
         <View style={{ alignItems: 'center', paddingVertical: 20 }}>
           <ActivityIndicator size="small" color="#16A34A" />
           <Text style={{ marginTop: 8, fontSize: 13, color: '#9CA3AF' }}>Loading customers...</Text>
+        </View>
+      ) : fetchError ? (
+        <View style={{ backgroundColor: '#FFF7ED', borderRadius: 14, padding: 16 }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#92400E' }}>Could not load customers</Text>
+          <TouchableOpacity onPress={() => search(query.trim())} hitSlop={8} style={{ marginTop: 6 }}>
+            <Text style={{ fontSize: 13, color: '#16A34A', fontWeight: '500' }}>Tap to retry</Text>
+          </TouchableOpacity>
         </View>
       ) : visibleResults.length === 0 ? (
         <View style={{ backgroundColor: '#F9FAFB', borderRadius: 14, padding: 16 }}>
