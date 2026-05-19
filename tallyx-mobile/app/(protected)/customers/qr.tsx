@@ -91,7 +91,7 @@ export default function QRScreen() {
     let permission: MediaLibrary.PermissionResponse;
 
     try {
-      permission = await MediaLibrary.requestPermissionsAsync(false, ['photo']);
+      permission = await MediaLibrary.requestPermissionsAsync(false);
     } catch {
       try {
         if (await openImageShareFallback(imageUri)) return;
