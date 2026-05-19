@@ -4,6 +4,7 @@ import type { CustomerListItem } from '@/features/customers/customer.types';
 import { formatDashboardDate, formatPeso } from '@/utils/dashboard';
 import { getCustomerAvatarColor } from '@/utils/customers';
 
+
 type CustomerListRowProps = {
   customer: CustomerListItem;
   opacity: Animated.Value;
@@ -30,26 +31,22 @@ export function CustomerListRow({ customer, opacity, onPress }: CustomerListRowP
           <Text className="text-[15px] font-bold text-gray-950" numberOfLines={1}>
             {customer.name}
           </Text>
-          <Text className="mt-1 text-[12px] text-gray-400" numberOfLines={1}>
-            {customer.phone || 'No phone number'}
-          </Text>
+          {customer.lastTransactionDate ? (
+            <Text className="mt-1 text-[12px] text-gray-400" numberOfLines={1}>
+              {formatDashboardDate(customer.lastTransactionDate)}
+            </Text>
+          ) : null}
         </View>
 
-        <View className="items-end gap-2">
-          <View className={`rounded-full px-3 py-1 ${hasBalance ? 'bg-amber-50' : 'bg-green-50'}`}>
-            <Text className={`text-[12px] font-bold ${hasBalance ? 'text-amber-700' : 'text-green-700'}`}>
-              {hasBalance ? formatPeso(customer.balance) : 'Settled'}
-            </Text>
-          </View>
-
-          <View className="flex-row items-center gap-1">
-            {customer.lastTransactionDate ? (
-              <Text className="text-[11px] text-gray-400">
-                {formatDashboardDate(customer.lastTransactionDate)}
+        <View className="items-center gap-2">
+          {hasBalance ? (
+            <View className="rounded-full bg-amber-50 px-3 py-1">
+              <Text className="text-[12px] font-bold text-amber-700">
+                {formatPeso(customer.balance)}
               </Text>
-            ) : null}
-            <ChevronRight size={15} color="#D1D5DB" strokeWidth={2.2} />
-          </View>
+            </View>
+          ) : null}
+          <ChevronRight size={15} color="#D1D5DB" strokeWidth={2.2} />
         </View>
       </TouchableOpacity>
     </Animated.View>

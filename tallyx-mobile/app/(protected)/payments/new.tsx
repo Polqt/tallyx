@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 
 // TODO(backend): POST payment to API
 // TODO(blockchain): call record_payment on the Soroban credit-ledger contract after saving
+// TODO(scanner): when QR scanning is added, use parseCustomerQRData(rawValue),
+// find the customer by customerId, then auto-select that customer here.
 
 export default function NewPayment() {
   const [creditId, setCreditId] = useState('');

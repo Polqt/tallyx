@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { createCustomerSchema } from "./customers.schema.js";
+import { createCustomerSchema, listCustomersQuerySchema } from "./customers.schema.js";
 import {
   createCustomerForUser,
   getCustomerForUser,
@@ -14,7 +14,8 @@ customerRouter.use(authenticate);
 // GET /customers
 customerRouter.get("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await getCustomersForUser(req.user!.id);
+    const query = listCustomersQuerySchema.parse(req.query);
+    const data = await getCustomersForUser(req.user!.id, query);
     res.json(data);
   } catch (err) {
     next(err);

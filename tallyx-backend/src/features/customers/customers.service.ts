@@ -1,9 +1,9 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db } from "../../db/client.js";
-import { credits, customers, stores } from "../../db/schema.js";
+import { credits, customers, payments, stores } from "../../db/schema.js";
 import { AppError } from "../../middleware/errorHandler.js";
-import type { CreateCustomerInput } from "./customers.schema.js";
+import type { CreateCustomerInput, ListCustomersQuery } from "./customers.schema.js";
 
 async function getStoreIdForUser(userId: string) {
   const [store] = await db
@@ -21,24 +21,80 @@ function toNumber(value: string | null | undefined) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export async function getCustomersForUser(userId: string) {
+function toQrIdentity(customerId: string, storeId: string) {
+  return JSON.stringify({
+    type: "tallyx_customer_identity",
+    version: 1,
+    customerId,
+    storeId,
+  });
+}
+
+export async function getCustomersForUser(userId: string, query: ListCustomersQuery) {
   const storeId = await getStoreIdForUser(userId);
-  const [customerRows, creditRows] = await Promise.all([
-    db.select().from(customers).where(eq(customers.storeId, storeId)),
-    db.select().from(credits).where(eq(credits.storeId, storeId)),
+  const search = query.q?.trim();
+  const whereClause = search
+    ? and(
+        eq(customers.storeId, storeId),
+        or(ilike(customers.name, `%${search}%`), ilike(customers.phone, `%${search}%`))
+      )
+    : eq(customers.storeId, storeId);
+
+  const offset = (query.page - 1) * query.limit;
+
+  const [customerRows, totalRows] = await Promise.all([
+    db
+      .select()
+      .from(customers)
+      .where(whereClause)
+      .orderBy(desc(customers.createdAt))
+      .limit(query.limit)
+      .offset(offset),
+    db.select({ total: count() }).from(customers).where(whereClause),
   ]);
 
-  return customerRows.map((customer) => {
-    const customerCredits = creditRows.filter((credit) => credit.customerId === customer.id);
+  const total = totalRows[0]?.total ?? 0;
+  const customerIds = customerRows.map((customer) => customer.id);
+
+  const creditRows = customerIds.length
+    ? await db
+        .select()
+        .from(credits)
+        .where(and(eq(credits.storeId, storeId), inArray(credits.customerId, customerIds)))
+    : [];
+
+  const creditsByCustomerId = new Map<string, typeof creditRows>();
+  for (const credit of creditRows) {
+    const customerCredits = creditsByCustomerId.get(credit.customerId) ?? [];
+    customerCredits.push(credit);
+    creditsByCustomerId.set(credit.customerId, customerCredits);
+  }
+
+  const items = customerRows.map((customer) => {
+    const customerCredits = (creditsByCustomerId.get(customer.id) ?? []).sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    );
     const balance = customerCredits.reduce((sum, credit) => sum + toNumber(credit.balance), 0);
-    const lastCredit = customerCredits.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+    const lastCredit = customerCredits[0];
 
     return {
       ...customer,
+      qrIdentity: toQrIdentity(customer.id, customer.storeId),
       balance,
-      lastTransactionDate: lastCredit?.createdAt.toISOString(),
+      lastTransactionDate: lastCredit?.createdAt.toISOString() ?? null,
     };
   });
+
+  return {
+    items,
+    pagination: {
+      page: query.page,
+      limit: query.limit,
+      total,
+      totalPages: Math.ceil(total / query.limit),
+      hasMore: offset + customerRows.length < total,
+    },
+  };
 }
 
 export async function getCustomerForUser(userId: string, id: string) {
@@ -57,11 +113,21 @@ export async function getCustomerForUser(userId: string, id: string) {
     .where(and(eq(credits.customerId, id), eq(credits.storeId, storeId)))
     .orderBy(desc(credits.createdAt));
 
+  const creditIds = customerCredits.map((credit) => credit.id);
+  const customerPayments = creditIds.length
+    ? await db
+        .select()
+        .from(payments)
+        .where(inArray(payments.creditId, creditIds))
+        .orderBy(desc(payments.createdAt))
+    : [];
+
   const totalCredit = customerCredits.reduce((sum, credit) => sum + toNumber(credit.amount), 0);
   const balance = customerCredits.reduce((sum, credit) => sum + toNumber(credit.balance), 0);
 
   return {
     ...customer,
+    qrIdentity: toQrIdentity(customer.id, customer.storeId),
     balance,
     totalCredit,
     totalPaid: totalCredit - balance,
@@ -73,6 +139,13 @@ export async function getCustomerForUser(userId: string, id: string) {
       date: credit.createdAt.toISOString(),
       dueDate: credit.dueDate?.toISOString() ?? null,
       stellarTxHash: credit.stellarTxHash,
+    })),
+    payments: customerPayments.map((payment) => ({
+      id: payment.id,
+      creditId: payment.creditId,
+      amount: toNumber(payment.amount),
+      date: payment.createdAt.toISOString(),
+      stellarTxHash: payment.stellarTxHash,
     })),
   };
 }
@@ -86,12 +159,12 @@ export async function createCustomerForUser(userId: string, input: CreateCustome
       storeId,
       name: input.name,
       phone: input.phone ?? null,
-      email: input.email ?? null,
     })
     .returning();
 
   return {
     ...customer,
+    qrIdentity: toQrIdentity(customer.id, customer.storeId),
     balance: 0,
     lastTransactionDate: null,
   };

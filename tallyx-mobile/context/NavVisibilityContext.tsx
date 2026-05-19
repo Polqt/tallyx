@@ -1,8 +1,9 @@
-import { createContext, useContext, useRef, useCallback } from 'react';
+import { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { Animated } from 'react-native';
 
 interface NavVisibilityContextValue {
   navOpacity: Animated.Value;
+  navInteractive: boolean;
   hideNav: () => void;
   showNav: () => void;
 }
@@ -11,8 +12,10 @@ const NavVisibilityContext = createContext<NavVisibilityContextValue | null>(nul
 
 export function NavVisibilityProvider({ children }: { children: React.ReactNode }) {
   const navOpacity = useRef(new Animated.Value(1)).current;
+  const [navInteractive, setNavInteractive] = useState(true);
 
   const hideNav = useCallback(() => {
+    setNavInteractive(false);
     Animated.timing(navOpacity, {
       toValue: 0,
       duration: 400,
@@ -25,11 +28,11 @@ export function NavVisibilityProvider({ children }: { children: React.ReactNode 
       toValue: 1,
       duration: 500,
       useNativeDriver: true,
-    }).start();
+    }).start(() => setNavInteractive(true));
   }, [navOpacity]);
 
   return (
-    <NavVisibilityContext.Provider value={{ navOpacity, hideNav, showNav }}>
+    <NavVisibilityContext.Provider value={{ navOpacity, navInteractive, hideNav, showNav }}>
       {children}
     </NavVisibilityContext.Provider>
   );
