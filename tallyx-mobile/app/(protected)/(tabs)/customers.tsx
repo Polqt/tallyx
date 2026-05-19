@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, FlatList, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, BackHandler, FlatList, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Plus, UsersRound } from 'lucide-react-native';
 import BottomSheet from '@gorhom/bottom-sheet';
 import Toast from 'react-native-toast-message';
@@ -31,9 +31,21 @@ export default function Customers() {
   const [totalCustomers, setTotalCustomers] = useState(0);
 
   const sheetRef = useRef<BottomSheet>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [creating, setCreating] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!sheetOpen) return;
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        sheetRef.current?.close();
+        return true;
+      });
+      return () => sub.remove();
+    }, [sheetOpen])
+  );
 
   const fadeAnims = useRef<Record<string, Animated.Value>>({});
 
@@ -110,10 +122,12 @@ export default function Customers() {
   function openSheet() {
     haptics.light();
     hideNav();
-    sheetRef.current?.expand();
+    sheetRef.current?.snapToIndex(0);
+    setSheetOpen(true);
   }
 
   function resetForm() {
+    setSheetOpen(false);
     setNewName('');
     setNewPhone('');
     showNav();
@@ -261,7 +275,7 @@ export default function Customers() {
         />
       )}
 
-      {customers.length > 0 && (
+      {customers.length > 0 && !sheetOpen && (
         <TouchableOpacity
           onPress={openSheet}
           activeOpacity={0.85}

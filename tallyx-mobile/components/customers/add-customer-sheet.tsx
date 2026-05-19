@@ -43,6 +43,7 @@ export const AddCustomerSheet = forwardRef<BottomSheet, AddCustomerSheetProps>(
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
         backdropComponent={renderBackdrop}
+        animationConfigs={{ duration: 500, dampingRatio: 0.85 }}
         onClose={onClose}
         handleIndicatorStyle={{ backgroundColor: '#D1D5DB', width: 40 }}
         backgroundStyle={{ borderTopLeftRadius: 28, borderTopRightRadius: 28 }}
