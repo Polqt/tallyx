@@ -115,7 +115,6 @@ export default function CustomerDetailScreen() {
               <QRCode value={customer.qrIdentity} size={160} color="#111827" backgroundColor="#FFFFFF" />
             </View>
             <Text className="mt-3 text-[15px] font-bold text-gray-900">Customer QR identity</Text>
-            <Text className="mt-1 text-center text-[12px] text-gray-400" selectable>{customer.qrIdentity}</Text>
           </View>
 
           <View className="flex-row px-5 py-[22px]">
