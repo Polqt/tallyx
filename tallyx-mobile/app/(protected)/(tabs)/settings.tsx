@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Alert, Linking, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Bell, BookOpen, ChevronRight, Info, LogOut, MessageSquareWarning, RefreshCw } from 'lucide-react-native';
+import { Bell, BookOpen, Info, MessageSquareWarning } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useStoreStore } from '@/stores/store.store';
 import { useOnboardingStore } from '@/stores/onboarding.store';
@@ -14,8 +14,6 @@ export default function Settings() {
   const profile = useStoreStore((s) => s.profile);
   const setHasSeenOnboarding = useOnboardingStore((s) => s.setHasSeenOnboarding);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-
-  const initial = user?.ownerName?.[0]?.toUpperCase() ?? '?';
 
   function handleSignOut() {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
@@ -39,47 +37,76 @@ export default function Settings() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 100, paddingTop: 8 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 100, paddingTop: 8 }}
       >
-        <TouchableOpacity
-          activeOpacity={0.7}
-          className="flex-row items-center rounded-2xl border border-[#F3F4F6] bg-[#F9FAFB] px-3.5 py-3.5"
-        >
-          <View className="h-11 w-11 items-center justify-center rounded-full bg-green-600">
-            <Text className="text-[18px] font-bold text-white">{initial}</Text>
+        <View className="items-center py-4">
+          <View style={{ height: 64, width: 64, borderRadius: 32, backgroundColor: '#16A34A', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 26, fontWeight: '700', color: '#FFFFFF' }}>{user?.ownerName?.[0]?.toUpperCase() ?? '?'}</Text>
           </View>
-          <View className="ml-3 flex-1">
-            <Text className="text-[15px] font-bold text-gray-900">{user?.ownerName ?? '—'}</Text>
-            <Text className="mt-0.5 text-[13px] text-gray-500">{profile?.name ?? user?.email ?? '—'}</Text>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827', marginTop: 12 }}>
+            {user?.ownerName ?? '—'}
+          </Text>
+          <View style={{ marginTop: 6, paddingHorizontal: 12, paddingVertical: 3, borderRadius: 20, backgroundColor: '#F0FDF4' }}>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#16A34A' }}>
+              {profile?.name ?? '—'}
+            </Text>
           </View>
-          <ChevronRight size={16} color="#D1D5DB" strokeWidth={2} />
-        </TouchableOpacity>
-
-        <View className="mt-8">
-          <SettingsSectionLabel label="App" />
-          <SettingsRow icon={BookOpen} label="Guide to Tallyx" onPress={() => router.push('/(protected)/settings/guide')} />
-          <SettingsRow icon={Info} label="About Tallyx" onPress={() => router.push('/(protected)/settings/about')} showDivider={false} />
         </View>
 
-        <View className="mt-8">
+        <View style={{ marginTop: 16 }}>
+          <SettingsSectionLabel label="App" />
+          <SettingsRow icon={BookOpen} label="Guide to Tallyx" onPress={() => router.push('/(protected)/settings/guide')} />
+          <SettingsRow icon={Info} label="About Tallyx" onPress={() => router.push('/(protected)/settings/about')} />
+        </View>
+
+        <View style={{ marginTop: 16 }}>
           <SettingsSectionLabel label="Notifications" />
           <SettingsRow
             icon={Bell}
             label="Notifications"
             right={{ type: 'toggle', value: notificationsEnabled, onChange: setNotificationsEnabled }}
-            showDivider={false}
           />
         </View>
 
-        <View className="mt-8">
+        <View style={{ marginTop: 16 }}>
           <SettingsSectionLabel label="Support" />
-          <SettingsRow icon={MessageSquareWarning} label="Report a Problem" onPress={() => Linking.openURL('mailto:support@tallyx.app?subject=Bug Report')} showDivider={false} />
+          <SettingsRow
+            icon={MessageSquareWarning}
+            label="Report a Problem"
+            onPress={() => Linking.openURL('mailto:support@tallyx.app?subject=Bug Report')}
+          />
         </View>
 
-        <View className="mt-8">
-          <SettingsSectionLabel label="Account" />
-          <SettingsRow icon={RefreshCw} label="Reset Onboarding" onPress={handleResetOnboarding} />
-          <SettingsRow icon={LogOut} label="Sign Out" labelColor="#EF4444" right={{ type: 'none' }} onPress={handleSignOut} showDivider={false} />
+        <View style={{ marginTop: 24, gap: 12 }}>
+          <TouchableOpacity
+            onPress={handleResetOnboarding}
+            activeOpacity={0.75}
+            style={{
+              height: 48,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ fontSize: 15, fontWeight: '500', color: '#374151' }}>Reset Onboarding</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleSignOut}
+            activeOpacity={0.75}
+            style={{
+              height: 48,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#FECACA',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#DC2626' }}>Sign Out</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>

@@ -13,7 +13,6 @@ type Props = {
   labelColor?: string;
   right?: SettingsRightElement;
   onPress?: () => void;
-  showDivider?: boolean;
 };
 
 export function SettingsRow({
@@ -22,19 +21,16 @@ export function SettingsRow({
   labelColor = '#111827',
   right = { type: 'chevron' },
   onPress,
-  showDivider = true,
 }: Props) {
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={onPress ? 0.65 : 1}
-      className="flex-row items-center px-5 py-3.5"
+      className="flex-row items-center px-5"
+      style={{ paddingVertical: 13 }}
     >
       <Icon size={18} color="#9CA3AF" strokeWidth={1.8} />
       <View className="ml-3 flex-1">
-        {showDivider && (
-          <View className="absolute -bottom-px left-0 right-0 bg-[#F3F4F6]" style={{ height: 1 }} />
-        )}
         <View className="flex-row items-center justify-between">
           <Text style={{ fontSize: 15, color: labelColor }}>{label}</Text>
           {right.type === 'chevron' && (
@@ -59,7 +55,7 @@ export function SettingsRow({
 
 export function SettingsSectionLabel({ label }: { label: string }) {
   return (
-    <Text style={{ fontSize: 13, fontWeight: '700', color: '#111827', marginBottom: 4 }}>
+    <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 4 }}>
       {label}
     </Text>
   );

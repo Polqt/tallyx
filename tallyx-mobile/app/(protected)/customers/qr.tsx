@@ -135,7 +135,7 @@ export default function QRScreen() {
           alignItems: 'center',
           paddingTop: 40,
           paddingHorizontal: 24,
-          paddingBottom: insets.bottom + 32,
+          paddingBottom: 24,
         }}
       >
         <View
@@ -161,27 +161,34 @@ export default function QRScreen() {
             Show this to your customer to confirm payment.
           </Text>
         </View>
-
-        <View className="mt-14 w-full gap-3">
-          <TouchableOpacity
-            onPress={handleShare}
-            activeOpacity={0.85}
-            className="h-[52px] w-full flex-row items-center justify-center gap-2 rounded-[26px] bg-green-600"
-          >
-            <Share2 size={18} color="#FFFFFF" strokeWidth={2} />
-            <Text className="text-[15px] font-bold text-white">Share QR</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={handleDownload}
-            activeOpacity={0.7}
-            className="h-[52px] w-full flex-row items-center justify-center gap-2 rounded-[26px] border border-gray-200 bg-white"
-          >
-            <Download size={16} color="#374151" strokeWidth={2} />
-            <Text className="text-[14px] font-medium text-gray-700">Download</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
+
+      <View
+        style={{
+          paddingHorizontal: 24,
+          paddingTop: 12,
+          paddingBottom: insets.bottom + 16,
+          gap: 12,
+        }}
+      >
+        <TouchableOpacity
+          onPress={handleShare}
+          activeOpacity={0.85}
+          className="h-[52px] w-full flex-row items-center justify-center gap-2 rounded-[26px] bg-green-600"
+        >
+          <Share2 size={18} color="#FFFFFF" strokeWidth={2} />
+          <Text className="text-[15px] font-bold text-white">Share QR</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleDownload}
+          activeOpacity={0.7}
+          className="h-[52px] w-full flex-row items-center justify-center gap-2 rounded-[26px] border border-gray-200 bg-white"
+        >
+          <Download size={16} color="#374151" strokeWidth={2} />
+          <Text className="text-[14px] font-medium text-gray-700">Download</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
