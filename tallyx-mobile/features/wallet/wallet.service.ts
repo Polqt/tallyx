@@ -1,12 +1,13 @@
 import { Keypair } from '@stellar/stellar-base';
 import * as Crypto from 'expo-crypto';
-import * as SecureStore from 'expo-secure-store';
+import { AFTER_FIRST_UNLOCK } from 'expo-secure-store';
+import { SecureStore, SecureStoreOptions } from '@/utils/secure-store';
 
 const STELLAR_SECRET_KEY = 'tallyx.stellar.secret_key';
 const STELLAR_PUBLIC_KEY = 'tallyx.stellar.public_key';
 
-const secureStoreOptions: SecureStore.SecureStoreOptions = {
-  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+const secureStoreOptions: SecureStoreOptions = {
+  keychainAccessible: AFTER_FIRST_UNLOCK,
 };
 
 export type StoreWallet = {

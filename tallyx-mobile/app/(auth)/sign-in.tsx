@@ -61,7 +61,7 @@ export default function SignIn() {
         snapPoints={SNAP_POINTS}
         topInset={insets.top}
         onChange={handleSheetChange}
-        keyboardBehavior="interactive"
+        keyboardBehavior="extend"
         keyboardBlurBehavior="restore"
         enableOverDrag={false}
         enablePanDownToClose={false}
@@ -89,6 +89,7 @@ export default function SignIn() {
 
           <View className="mt-5" style={{ gap: 12 }}>
             <AuthInput
+              isBottomSheet
               icon={<Mail size={18} color="#9CA3AF" strokeWidth={2} />}
               label="Email address"
               value={email}
@@ -97,6 +98,7 @@ export default function SignIn() {
               autoCapitalize="none"
             />
             <AuthInput
+              isBottomSheet
               icon={<Lock size={18} color="#9CA3AF" strokeWidth={2} />}
               label="Password"
               value={password}
