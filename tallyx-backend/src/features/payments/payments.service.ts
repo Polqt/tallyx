@@ -31,6 +31,7 @@ export async function getPaymentForUser(userId: string, paymentId: string) {
       amount: payments.amount,
       paymentMethod: payments.paymentMethod,
       stellarTxHash: payments.stellarTxHash,
+      syncStatus: payments.syncStatus,
       createdAt: payments.createdAt,
       credit: {
         id: credits.id,
@@ -63,6 +64,7 @@ export async function getPaymentsForUser(userId: string) {
       amount: payments.amount,
       paymentMethod: payments.paymentMethod,
       stellarTxHash: payments.stellarTxHash,
+      syncStatus: payments.syncStatus,
       createdAt: payments.createdAt,
       credit: {
         id: credits.id,
@@ -85,7 +87,6 @@ export async function getPaymentsForUser(userId: string) {
 export async function createPaymentForUser(userId: string, input: RecordPaymentInput) {
   const storeId = await getStoreIdForUser(userId);
 
-  // 1. Fetch and validate credit (scoped strictly to the user's store)
   const [credit] = await db
     .select()
     .from(credits)
@@ -94,12 +95,12 @@ export async function createPaymentForUser(userId: string, input: RecordPaymentI
 
   if (!credit) throw new AppError("Credit not found or unauthorized", 404);
   if (credit.status === "paid") throw new AppError("Credit is already paid", 400);
+  if (credit.status === "voided") throw new AppError("Credit has been voided", 400);
 
   const currentBalance = Number(credit.balance);
   if (!Number.isFinite(currentBalance)) {
     throw new AppError("Credit balance is invalid", 500);
   }
-
   if (input.amount > currentBalance) {
     throw new AppError("Payment exceeds remaining balance", 400);
   }
@@ -107,19 +108,27 @@ export async function createPaymentForUser(userId: string, input: RecordPaymentI
   const newBalance = currentBalance - input.amount;
   const newStatus = newBalance === 0 ? "paid" : "partial";
 
-  // 2. Mock or real record on Stellar
-  let txHash = input.stellarTxHash;
-  if (input.paymentMethod === "usdc" && !txHash) {
-    const onChainResult = await recordPaymentOnChain({
-      creditId: input.creditId,
-      amount: input.amount,
-    });
-    txHash = onChainResult.txHash;
+  // Best-effort Soroban sync — DB write succeeds regardless.
+  // Only attempted if this credit was originally synced to the chain.
+  // TODO: add USDC transfer_from here once customer wallet approval flow exists
+  let txHash: string | null = null;
+  let syncStatus: "synced" | "failed" | "pending" = "pending";
+
+  if (credit.onChainCreditId) {
+    try {
+      const result = await recordPaymentOnChain({
+        onChainCreditId: credit.onChainCreditId,
+        amount: input.amount,
+      });
+      txHash = result.txHash;
+      syncStatus = "synced";
+    } catch (err) {
+      console.error("[Stellar] recordPaymentOnChain failed:", err);
+      syncStatus = "failed";
+    }
   }
 
-  // 3. Insert payment record inside database transaction to guarantee consistency
   return db.transaction(async (tx) => {
-    // Insert into payments table
     const [payment] = await tx
       .insert(payments)
       .values({
@@ -127,17 +136,18 @@ export async function createPaymentForUser(userId: string, input: RecordPaymentI
         creditId: input.creditId,
         amount: input.amount.toString(),
         paymentMethod: input.paymentMethod,
-        stellarTxHash: txHash || null,
+        stellarTxHash: txHash,
+        syncStatus,
       })
       .returning();
 
-    // Update credit balance and status
     await tx
       .update(credits)
       .set({
         balance: newBalance.toString(),
         status: newStatus,
-        stellarTxHash: txHash || credit.stellarTxHash,
+        syncStatus,
+        stellarTxHash: txHash ?? credit.stellarTxHash,
         updatedAt: new Date(),
       })
       .where(eq(credits.id, input.creditId));

@@ -2,19 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Platform, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { CalendarDays, ChevronLeft, Clock3, MoreHorizontal, Pencil, ShieldCheck, Trash2, WifiOff, XCircle, RotateCcw } from 'lucide-react-native';
+import { CalendarDays, ChevronLeft, Clock3, HardDrive, MoreHorizontal, Pencil, RefreshCcw, RotateCcw, ShieldCheck, Trash2, WifiOff, XCircle } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '@/context/AuthContext';
 import { deleteCredit, fetchCredit, unvoidCredit, updateCredit, voidCredit } from '@/features/credits/credit.service';
 import type { CreditListItem } from '@/features/credits/credit.types';
+import { openTransactionExplorer, truncateStellarAddress } from '@/features/stellar/stellar.service';
 import { statusStyles } from '@/utils/credit';
 import { formatDashboardDate, formatPeso } from '@/utils/dashboard';
 import { haptics } from '@/utils/haptics';
 
 const syncConfig = {
-  pending: { label: 'Sync pending', color: '#D97706', Icon: Clock3 },
-  synced: { label: 'On-chain synced', color: '#16A34A', Icon: ShieldCheck },
-  failed: { label: 'Sync failed', color: '#DC2626', Icon: WifiOff },
+  local:   { label: 'Saved locally',    color: '#9CA3AF', Icon: HardDrive },
+  pending: { label: 'Sync pending',     color: '#D97706', Icon: Clock3 },
+  syncing: { label: 'Syncing…',         color: '#2563EB', Icon: Clock3 },
+  synced:  { label: 'On-chain synced',  color: '#16A34A', Icon: ShieldCheck },
+  failed:  { label: 'Sync failed',      color: '#DC2626', Icon: WifiOff },
 };
 
 export default function CreditDetailScreen() {
@@ -182,7 +185,7 @@ export default function CreditDetailScreen() {
   }
 
   const status = credit ? (statusStyles[credit.status] ?? statusStyles.pending) : null;
-  const sync = credit ? (syncConfig[credit.syncStatus] ?? syncConfig.pending) : null;
+  const sync = credit ? (syncConfig[credit.syncStatus] ?? syncConfig.local) : null;
   const SyncIcon = sync?.Icon;
   const canVoid = credit && credit.status !== 'voided' && credit.status !== 'paid';
   const canUnvoid = credit && credit.status === 'voided';
@@ -297,20 +300,60 @@ export default function CreditDetailScreen() {
             </View>
           ) : null}
 
-          <View style={{ marginHorizontal: 20, marginBottom: 12, flex: 1 }}>
-            <View style={{ flex: 1, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 20, paddingVertical: 18 }}>
+          <View style={{ marginHorizontal: 20, marginBottom: 12 }}>
+            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 20, paddingVertical: 18 }}>
               <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Blockchain</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <SyncIcon size={15} color={sync.color} strokeWidth={2.2} />
                 <Text style={{ fontSize: 14, fontWeight: '600', color: sync.color }}>{sync.label}</Text>
               </View>
               {credit.stellarTxHash ? (
-                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8 }} numberOfLines={1}>
-                  {credit.stellarTxHash}
-                </Text>
+                <TouchableOpacity
+                  onPress={async () => {
+                    haptics.light();
+                    try {
+                      await openTransactionExplorer(credit.stellarTxHash!);
+                    } catch {
+                      Alert.alert('Unable to open explorer', 'Please try again.');
+                    }
+                  }}
+                  activeOpacity={0.7}
+                  style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                >
+                  <Text style={{ fontSize: 12, color: '#2563EB', fontWeight: '600' }}>
+                    {truncateStellarAddress(credit.stellarTxHash)}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#2563EB' }}>↗</Text>
+                </TouchableOpacity>
               ) : null}
             </View>
           </View>
+
+          {/* Sync failed banner */}
+          {credit.syncStatus === 'failed' && (
+            <View style={{ marginHorizontal: 20, marginBottom: 12, borderRadius: 16, borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FEF2F2', padding: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+                <WifiOff size={16} color="#DC2626" strokeWidth={2} style={{ marginTop: 1 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#991B1B', marginBottom: 2 }}>
+                    Blockchain sync failed
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#B91C1C', lineHeight: 18 }}>
+                    Saved locally. Blockchain sync failed. You can retry later.
+                  </Text>
+                </View>
+              </View>
+              {/* TODO: implement retry sync — call createCreditOnChain and update syncStatus */}
+              <TouchableOpacity
+                onPress={() => Alert.alert('Retry Sync', 'Sync retry is not yet implemented. Your data is saved locally and will sync in a future update.')}
+                activeOpacity={0.8}
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, height: 36, borderRadius: 10, borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FFFFFF' }}
+              >
+                <RefreshCcw size={13} color="#DC2626" strokeWidth={2} />
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#DC2626' }}>Retry Sync</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
         </ScrollView>
       ) : null}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -44,7 +44,7 @@ export default function Payments() {
   }, [fadeAnim, slideAnim]);
 
   // Load payments from API
-  const loadPayments = async (showLoading = true, signal?: AbortSignal) => {
+  const loadPayments = useCallback(async (showLoading = true, signal?: AbortSignal) => {
     if (!token) return;
     if (showLoading) setLoading(true);
     setError(null);
@@ -58,7 +58,7 @@ export default function Payments() {
       if (showLoading) setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [token]);
 
   // Fetch payments on mount and screen focus
   useEffect(() => {
@@ -73,7 +73,7 @@ export default function Payments() {
       controller.abort();
       unsubscribe();
     };
-  }, [token, navigation]);
+  }, [loadPayments, navigation]);
 
   const handleRefresh = () => {
     haptics.light();

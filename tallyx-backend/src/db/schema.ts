@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { bigint, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -40,6 +40,7 @@ export const credits = pgTable("credits", {
   syncStatus: text("sync_status").notNull().default("pending"),
   dueDate: timestamp("due_date"),
   stellarTxHash: text("stellar_tx_hash"),
+  onChainCreditId: bigint("on_chain_credit_id", { mode: "bigint" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -50,5 +51,6 @@ export const payments = pgTable("payments", {
   amount: text("amount").notNull(),
   paymentMethod: text("payment_method").notNull().default("cash"),
   stellarTxHash: text("stellar_tx_hash"),
+  syncStatus: text("sync_status").notNull().default("pending"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

@@ -1,12 +1,14 @@
 import { z } from "zod";
 
 export const createCreditOnChainSchema = z.object({
-  customerId: z.string().uuid(),
+  customerId: z.string(),
   creditId: z.string().uuid(),
+  storeId: z.string(),
   amount: z.number().int().positive(),
+  dueDateUnix: z.number().int().nonnegative().optional(),
 });
 
 export const recordPaymentOnChainSchema = z.object({
-  creditId: z.string().uuid(),
+  onChainCreditId: z.coerce.bigint().positive(),
   amount: z.number().int().positive(),
 });

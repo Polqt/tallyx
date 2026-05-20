@@ -14,38 +14,23 @@ async function readJson(response: Response) {
 
 async function paymentRequest<T>(path: string, token: string, options: RequestInit = {}) {
   const targetUrl = `${API_URL}${path}`;
-  console.log(`[Payment API Request] Init: ${options.method ?? 'GET'} ${targetUrl}`, {
+
+  const response = await fetch(targetUrl, {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token ? `${token.slice(0, 10)}...` : 'none'}`,
+      Authorization: `Bearer ${token}`,
       ...options.headers,
     },
-    body: options.body
   });
 
-  try {
-    const response = await fetch(targetUrl, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        ...options.headers,
-      },
-    });
+  const data = await readJson(response);
 
-    const data = await readJson(response);
-
-    if (!response.ok) {
-      console.error(`[Payment API Request Error] Response status ${response.status} for ${targetUrl}:`, data);
-      throw new Error(data.error ?? data.message ?? `Payment request failed with status ${response.status}`);
-    }
-
-    console.log(`[Payment API Request Success] Loaded payload for ${targetUrl}`);
-    return data as T;
-  } catch (err) {
-    console.error(`[Payment API Request Error] Failed for ${targetUrl}:`, err);
-    throw err;
+  if (!response.ok) {
+    throw new Error(data.error ?? data.message ?? `Payment request failed with status ${response.status}`);
   }
+
+  return data as T;
 }
 
 export function fetchPayments(token: string, signal?: AbortSignal) {

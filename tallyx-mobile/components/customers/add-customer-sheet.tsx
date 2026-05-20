@@ -88,10 +88,7 @@ export function AddCustomerSheet({
             />
 
             <TouchableOpacity
-              onPress={() => {
-                console.log('[AddCustomerSheet] Create button pressed', { name, phone, canSubmit, creating });
-                onSubmit();
-              }}
+              onPress={onSubmit}
               activeOpacity={0.85}
               disabled={!canSubmit}
               className={`h-[54px] items-center justify-center rounded-2xl mt-8 ${

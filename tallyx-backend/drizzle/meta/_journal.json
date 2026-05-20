@@ -29,6 +29,27 @@
       "when": 1779206089738,
       "tag": "0003_lovely_warbird",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779278836470,
+      "tag": "0004_talented_lockjaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779284463727,
+      "tag": "0005_short_brood",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779286407872,
+      "tag": "0006_past_stingray",
+      "breakpoints": true
     }
   ]
 }

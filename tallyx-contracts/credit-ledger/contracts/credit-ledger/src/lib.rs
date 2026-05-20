@@ -5,12 +5,29 @@ mod storage;
 mod types;
 
 use errors::Error;
-use soroban_sdk::{contract, contractimpl, panic_with_error, Env, String};
+use soroban_sdk::{contract, contractevent, contractimpl, panic_with_error, Address, Env, String};
 use storage::{
     read_credit, read_credit_count, read_customer_balance, write_credit, write_credit_count,
     write_customer_balance,
 };
 use types::{CreditEntry, CreditStatus};
+
+#[contractevent]
+pub struct CreditCreated {
+    pub credit_id: u64,
+    pub store_id: String,
+    pub customer_id: String,
+    pub amount: i128,
+    pub due_date: u64,
+}
+
+#[contractevent]
+pub struct PaymentRecorded {
+    pub credit_id: u64,
+    pub customer_id: String,
+    pub amount: i128,
+    pub fully_paid: bool,
+}
 
 #[contract]
 pub struct CreditLedger;
@@ -19,33 +36,31 @@ pub struct CreditLedger;
 impl CreditLedger {
     /// Record a new credit (utang) extended by a store to a customer.
     ///
-    /// Returns the auto-generated credit_id for this entry.
+    /// The `store_owner` must sign the transaction. Returns the auto-generated
+    /// credit_id for this entry.
     ///
-    /// # Arguments
-    /// * `store_id`    - Identifier for the store/lender (e.g. "store-001")
-    /// * `customer_id` - Identifier for the customer/borrower (e.g. "cust-007")
-    /// * `amount`      - Amount owed in stroops (i128 to allow large values)
-    /// * `due_date`    - Unix timestamp when the credit is due
+    /// TODO: add customer wallet support in future version (needed for USDC settlement)
     pub fn create_credit(
         env: Env,
+        store_owner: Address,
         store_id: String,
         customer_id: String,
         amount: i128,
         due_date: u64,
     ) -> u64 {
-        // TODO(auth): require store_id owner to sign this transaction
+        store_owner.require_auth();
 
         if amount <= 0 {
             panic_with_error!(&env, Error::InvalidAmount);
         }
 
-        // Assign the next available ID (starts at 1).
         let credit_id = read_credit_count(&env) + 1;
         write_credit_count(&env, credit_id);
 
         let entry = CreditEntry {
             credit_id,
-            store_id,
+            store_id: store_id.clone(),
+            store_owner,
             customer_id: customer_id.clone(),
             amount,
             amount_paid: 0,
@@ -55,25 +70,31 @@ impl CreditLedger {
 
         write_credit(&env, &entry);
 
-        // Add this amount to the customer's running balance.
         let prev_balance = read_customer_balance(&env, &customer_id);
         write_customer_balance(&env, &customer_id, prev_balance + amount);
 
-        // TODO(events): emit CreditCreated event for off-chain indexers
+        CreditCreated {
+            credit_id,
+            store_id,
+            customer_id,
+            amount,
+            due_date,
+        }
+        .publish(&env);
 
         credit_id
     }
 
-    /// Record a payment against an existing credit.
+    /// Record a payment proof against an existing credit.
+    ///
+    /// The original `store_owner` who created the credit must sign.
+    /// This is a ledger-only operation — it tracks the payment on-chain
+    /// without moving any tokens.
     ///
     /// Returns `true` when the credit is fully settled, `false` otherwise.
     ///
-    /// # Arguments
-    /// * `credit_id` - The ID returned by `create_credit`
-    /// * `amount`    - Payment amount in stroops (must be > 0)
+    /// TODO: add USDC transfer_from once customer wallet approval flow exists
     pub fn record_payment(env: Env, credit_id: u64, amount: i128) -> bool {
-        // TODO(auth): require store_id owner or a verified lender to sign
-
         if amount <= 0 {
             panic_with_error!(&env, Error::InvalidAmount);
         }
@@ -81,14 +102,14 @@ impl CreditLedger {
         let mut entry = read_credit(&env, credit_id)
             .unwrap_or_else(|| panic_with_error!(&env, Error::CreditNotFound));
 
+        entry.store_owner.require_auth();
+
         let remaining = entry.amount - entry.amount_paid;
         if amount > remaining {
             panic_with_error!(&env, Error::Overpayment);
         }
 
         entry.amount_paid += amount;
-
-        // Update status based on how much has been repaid.
         entry.status = if entry.amount_paid == entry.amount {
             CreditStatus::FullyPaid
         } else {
@@ -97,14 +118,20 @@ impl CreditLedger {
 
         write_credit(&env, &entry);
 
-        // Reduce the customer's running balance by the payment amount.
         let prev_balance = read_customer_balance(&env, &entry.customer_id);
         write_customer_balance(&env, &entry.customer_id, prev_balance - amount);
 
-        // TODO(events): emit PaymentRecorded event for off-chain indexers
-        // TODO(usdc): trigger USDC transfer from customer to store here
+        let fully_paid = entry.status == CreditStatus::FullyPaid;
 
-        entry.status == CreditStatus::FullyPaid
+        PaymentRecorded {
+            credit_id,
+            customer_id: entry.customer_id,
+            amount,
+            fully_paid,
+        }
+        .publish(&env);
+
+        fully_paid
     }
 
     /// Fetch a single credit entry by its ID.
@@ -117,7 +144,6 @@ impl CreditLedger {
     ///
     /// Returns 0 if the customer has no credits on record.
     pub fn get_customer_balance(env: Env, customer_id: String) -> i128 {
-        // TODO(lender): restrict to verified lenders or the customer themselves
         read_customer_balance(&env, &customer_id)
     }
 }

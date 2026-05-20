@@ -32,7 +32,7 @@ export function QrScannerModal({ visible, onClose, onScanSuccess }: Props) {
     if (parsed) {
       onScanSuccess(parsed.customerId);
     } else {
-      // Fallback: If it's a raw customer ID, try using that directly!
+      // Fallback: if the QR contains only a customer ID, use it directly.
       onScanSuccess(data);
     }
   };
@@ -100,7 +100,7 @@ export function QrScannerModal({ visible, onClose, onScanSuccess }: Props) {
               </View>
               <View style={styles.overlayBottom}>
                 <Text style={styles.hintText}>
-                  Center the customer's QR code inside the frame to scan automatically
+                  Center the customer QR code inside the frame to scan automatically
                 </Text>
               </View>
             </View>

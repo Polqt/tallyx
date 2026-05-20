@@ -12,9 +12,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ChevronLeft, User, Calendar, CreditCard, QrCode } from 'lucide-react-native';
+import { User, Calendar, CreditCard, QrCode } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
-import { fetchCustomers, fetchCustomerDetail } from '@/features/customers/customer.service';
+import { fetchCustomerDetail } from '@/features/customers/customer.service';
 import { recordPayment } from '@/features/payments/payment.service';
 import { CustomerSelectModal } from '@/components/payments/customer-select-modal';
 import { CreditSelectModal } from '@/components/payments/credit-select-modal';
@@ -46,13 +46,12 @@ export default function NewPayment() {
 
   const handleSelectCustomer = (selected: CustomerListItem) => {
     setCustomer(selected);
-    setCredit(null); // Reset credit selection when customer changes
+    setCredit(null);
     setAmount('');
   };
 
   const handleSelectCredit = (selected: CustomerCredit) => {
     setCredit(selected);
-    // Autofill with the remaining balance for quick one-tap settlements!
     setAmount(String(selected.balance));
   };
 
@@ -62,18 +61,14 @@ export default function NewPayment() {
   };
 
   const handleScanSuccess = async (customerId: string) => {
-    console.log('[NewPayment] handleScanSuccess triggered', { customerId });
     setQrScannerVisible(false);
     if (!token) {
-      console.error('[NewPayment] handleScanSuccess aborted: Token is null or undefined!');
       return;
     }
     setLoading(true);
     try {
-      console.log('[NewPayment] Resolving customer details by UUID', { customerId });
       const detail = await fetchCustomerDetail(token!, customerId);
       if (detail && detail.id) {
-        console.log('[NewPayment] Customer resolved successfully by UUID detail fetch', { name: detail.name, balance: detail.balance });
         const mappedCustomer: CustomerListItem = {
           id: detail.id,
           storeId: detail.storeId,
@@ -85,12 +80,10 @@ export default function NewPayment() {
         handleSelectCustomer(mappedCustomer);
         haptics.success();
       } else {
-        console.warn('[NewPayment] Customer fetch succeeded but returned empty/invalid payload', { detail });
         haptics.error();
         Alert.alert('Not Found', 'No customer matches this scanned QR identity.');
       }
-    } catch (err) {
-      console.error('[NewPayment] Failed to fetch customer details by UUID', err);
+    } catch {
       haptics.error();
       Alert.alert('Scan Error', 'Unable to resolve the scanned QR identity.');
     } finally {
@@ -122,12 +115,12 @@ export default function NewPayment() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1, backgroundColor: '#FFFFFF' }}
     >
 
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: insets.bottom + 40 }}
       >
@@ -293,7 +286,7 @@ export default function NewPayment() {
             <Text style={{ fontFamily: 'Geist_600SemiBold', fontSize: 13, color: '#4B5563', textTransform: 'uppercase', letterSpacing: 1.1, marginBottom: 12 }}>
               Step 3: Payment Details
             </Text>
-            
+
             <PaymentMethodSelector selected={method} onChange={setMethod} />
 
             <View style={{ marginBottom: 24 }}>

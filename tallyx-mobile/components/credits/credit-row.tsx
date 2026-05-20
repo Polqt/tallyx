@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import type { CreditListItem } from '@/features/credits/credit.types';
+import { SyncBadge } from '@/components/common/sync-badge';
 import { statusStyles } from '@/utils/credit';
 import { formatDashboardDate, formatPeso } from '@/utils/dashboard';
 import { haptics } from '@/utils/haptics';
@@ -45,10 +46,13 @@ export function CreditRow({ credit }: { credit: CreditListItem }) {
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end', gap: 6 }}>
-              <View style={{ backgroundColor: status.bg, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 2 }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, color: status.color }}>
-                  {status.label}
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <SyncBadge status={credit.syncStatus ?? 'local'} />
+                <View style={{ backgroundColor: status.bg, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 2 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, color: status.color }}>
+                    {status.label}
+                  </Text>
+                </View>
               </View>
               <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>
                 {formatPeso(credit.balance)}

@@ -1,0 +1,1 @@
+ALTER TABLE "payments" ADD COLUMN "sync_status" text DEFAULT 'pending' NOT NULL;

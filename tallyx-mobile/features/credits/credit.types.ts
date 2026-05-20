@@ -1,5 +1,5 @@
 export type CreditStatus = 'pending' | 'partial' | 'paid' | 'overdue' | 'voided';
-export type CreditSyncStatus = 'pending' | 'synced' | 'failed';
+export type CreditSyncStatus = 'local' | 'pending' | 'syncing' | 'synced' | 'failed';
 
 export interface CreditListItem {
   id: string;
