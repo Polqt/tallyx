@@ -59,3 +59,7 @@ export function createCredit(token: string, input: CreateCreditInput) {
     body: JSON.stringify(input),
   });
 }
+
+export function voidCredit(token: string, id: string) {
+  return creditRequest<CreditListItem>(`/credits/${id}/void`, token, { method: 'PATCH' });
+}

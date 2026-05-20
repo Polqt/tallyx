@@ -1,15 +1,27 @@
-import { Text, View } from 'react-native';
+import { TouchableOpacity, Text, View } from 'react-native';
 import type { CreditListItem } from '@/features/credits/credit.types';
 import { statusStyles, syncStyles } from '@/utils/credit';
 import { formatDashboardDate, formatPeso } from '@/utils/dashboard';
 
-export function CreditRow({ credit }: { credit: CreditListItem }) {
+interface CreditRowProps {
+  credit: CreditListItem;
+  onLongPress?: () => void;
+}
+
+export function CreditRow({ credit, onLongPress }: CreditRowProps) {
   const status = statusStyles[credit.status] ?? statusStyles.pending;
   const sync = syncStyles[credit.syncStatus] ?? syncStyles.pending;
   const SyncIcon = sync.Icon;
+  const isVoided = credit.status === 'voided';
 
   return (
-    <View className="mb-3 rounded-[22px] border border-gray-100 bg-white p-4" style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 12 }}>
+    <TouchableOpacity
+      onLongPress={onLongPress}
+      delayLongPress={400}
+      activeOpacity={0.85}
+      disabled={!onLongPress}
+    >
+    <View className="mb-3 rounded-[22px] border border-gray-100 bg-white p-4" style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 12, opacity: isVoided ? 0.55 : 1 }}>
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1">
           <Text className="text-[16px] font-bold text-gray-900">{credit.customerName ?? 'Customer'}</Text>
@@ -50,5 +62,6 @@ export function CreditRow({ credit }: { credit: CreditListItem }) {
         </View>
       </View>
     </View>
+    </TouchableOpacity>
   );
 }

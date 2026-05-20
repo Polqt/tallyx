@@ -1,12 +1,12 @@
 import { and, count, desc, eq, gt, inArray, lt, ne } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db } from "../../db/client.js";
-import { credits, customers, stores } from "../../db/schema.js";
+import { credits, customers, payments, stores } from "../../db/schema.js";
 import { AppError } from "../../middleware/errorHandler.js";
 import { recordPaymentOnChain } from "../stellar/stellar.service.js";
 import type { CreateCreditInput, ListCreditsQuery, PayCreditInput } from "./credits.schema.js";
 
-type CreditStatus = "pending" | "partial" | "paid" | "overdue";
+type CreditStatus = "pending" | "partial" | "paid" | "overdue" | "voided";
 type SyncStatus = "pending" | "synced" | "failed";
 
 async function getStoreIdForUser(userId: string) {
@@ -26,6 +26,7 @@ function toNumber(value: string | null | undefined) {
 }
 
 function getCreditStatus(credit: typeof credits.$inferSelect): CreditStatus {
+  if (credit.status === "voided") return "voided";
   if (credit.status === "paid") return "paid";
   if (credit.dueDate && credit.dueDate < new Date() && toNumber(credit.balance) > 0) return "overdue";
   if (credit.status === "partial") return "partial";
@@ -134,6 +135,34 @@ export async function createCreditForUser(userId: string, input: CreateCreditInp
   return toCreditResponse(credit, customer.name);
 }
 
+export async function voidCreditForUser(userId: string, id: string) {
+  const storeId = await getStoreIdForUser(userId);
+  const [credit] = await db
+    .select()
+    .from(credits)
+    .where(and(eq(credits.id, id), eq(credits.storeId, storeId)))
+    .limit(1);
+  if (!credit) throw new AppError("Credit not found", 404);
+  if (credit.status === "paid") throw new AppError("Cannot void a fully paid credit", 400);
+  if (credit.status === "voided") throw new AppError("Credit is already voided", 400);
+
+  const [paymentCount] = await db
+    .select({ total: count() })
+    .from(payments)
+    .where(eq(payments.creditId, id));
+  if ((paymentCount?.total ?? 0) > 0) {
+    throw new AppError("Cannot void a credit that has payments recorded against it", 400);
+  }
+
+  const [updated] = await db
+    .update(credits)
+    .set({ status: "voided", balance: "0", updatedAt: new Date() })
+    .where(eq(credits.id, id))
+    .returning();
+
+  return toCreditResponse(updated);
+}
+
 export async function payCreditForUser(userId: string, id: string, input: PayCreditInput) {
   const storeId = await getStoreIdForUser(userId);
   const [credit] = await db
@@ -143,6 +172,7 @@ export async function payCreditForUser(userId: string, id: string, input: PayCre
     .limit(1);
   if (!credit) throw new AppError("Credit not found", 404);
   if (credit.status === "paid") throw new AppError("Credit is already paid", 400);
+  if (credit.status === "voided") throw new AppError("Credit has been voided", 400);
 
   const currentBalance = Number(credit.balance);
   if (!Number.isFinite(currentBalance)) {

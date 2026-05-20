@@ -5,6 +5,7 @@ import {
   createCreditForUser,
   getCreditsForUser,
   payCreditForUser,
+  voidCreditForUser,
 } from "./credits.service.js";
 
 export const creditRouter = Router();
@@ -38,6 +39,16 @@ creditRouter.patch("/:id/pay", async (req: Request, res: Response, next: NextFun
   try {
     const input = payCreditSchema.parse(req.body);
     const data = await payCreditForUser(req.user!.id, req.params.id as string, input);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /credits/:id/void
+creditRouter.patch("/:id/void", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await voidCreditForUser(req.user!.id, req.params.id as string);
     res.json(data);
   } catch (err) {
     next(err);

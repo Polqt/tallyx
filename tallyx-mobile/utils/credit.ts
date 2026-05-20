@@ -6,6 +6,7 @@ export const statusStyles: Record<CreditStatus, { label: string; bg: string; tex
   partial: { label: 'Partial', bg: 'bg-blue-50', text: 'text-blue-700' },
   paid: { label: 'Paid', bg: 'bg-green-50', text: 'text-green-700' },
   overdue: { label: 'Overdue', bg: 'bg-red-50', text: 'text-red-700' },
+  voided: { label: 'Voided', bg: 'bg-gray-100', text: 'text-gray-500' },
 };
 
 export const syncStyles: Record<CreditSyncStatus, { label: string; color: string; Icon: typeof Clock3 }> = {
