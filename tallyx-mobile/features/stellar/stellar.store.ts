@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { isValidStellarAddress } from './stellar.service';
 import type { StellarWallet } from './stellar.types';
 
 interface StellarState {
@@ -13,7 +14,10 @@ export const useStellarStore = create<StellarState>()(
   persist(
     (set) => ({
       wallet: null,
-      connect: (publicKey) => set({ wallet: { publicKey, network: 'testnet' } }),
+      connect: (publicKey) => {
+        if (!isValidStellarAddress(publicKey)) return;
+        set({ wallet: { publicKey, network: 'testnet' } });
+      },
       disconnect: () => set({ wallet: null }),
     }),
     {

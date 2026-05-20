@@ -309,7 +309,14 @@ export default function CreditDetailScreen() {
               </View>
               {credit.stellarTxHash ? (
                 <TouchableOpacity
-                  onPress={() => { haptics.light(); openTransactionExplorer(credit.stellarTxHash!); }}
+                  onPress={async () => {
+                    haptics.light();
+                    try {
+                      await openTransactionExplorer(credit.stellarTxHash!);
+                    } catch {
+                      Alert.alert('Unable to open explorer', 'Please try again.');
+                    }
+                  }}
                   activeOpacity={0.7}
                   style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 6 }}
                 >

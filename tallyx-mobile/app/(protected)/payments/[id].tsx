@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, Coins, ExternalLink, Shield } from 'lucide-react-native';
@@ -179,7 +179,14 @@ export default function PaymentDetailScreen() {
               </View>
               {payment.stellarTxHash ? (
                 <TouchableOpacity
-                  onPress={() => { haptics.light(); openTransactionExplorer(payment.stellarTxHash!); }}
+                  onPress={async () => {
+                    haptics.light();
+                    try {
+                      await openTransactionExplorer(payment.stellarTxHash!);
+                    } catch {
+                      Alert.alert('Unable to open explorer', 'Please try again.');
+                    }
+                  }}
                   activeOpacity={0.7}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
                 >
