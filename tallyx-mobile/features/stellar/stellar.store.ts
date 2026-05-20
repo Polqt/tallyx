@@ -1,0 +1,24 @@
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { StellarWallet } from './stellar.types';
+
+interface StellarState {
+  wallet: StellarWallet | null;
+  connect: (publicKey: string) => void;
+  disconnect: () => void;
+}
+
+export const useStellarStore = create<StellarState>()(
+  persist(
+    (set) => ({
+      wallet: null,
+      connect: (publicKey) => set({ wallet: { publicKey, network: 'testnet' } }),
+      disconnect: () => set({ wallet: null }),
+    }),
+    {
+      name: 'tallyx-stellar-wallet',
+      storage: createJSONStorage(() => AsyncStorage),
+    }
+  )
+);

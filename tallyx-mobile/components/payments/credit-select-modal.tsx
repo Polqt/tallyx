@@ -29,8 +29,8 @@ export function CreditSelectModal({ visible, customerId, onClose, onSelect }: Pr
         // Filter out fully paid credits
         const outstanding = (res.credits || []).filter((c: CustomerCredit) => c.balance > 0);
         setCredits(outstanding);
-      } catch (err) {
-        console.error('Failed to load credits for customer selector', err);
+      } catch {
+        setCredits([]);
       } finally {
         setLoading(false);
       }

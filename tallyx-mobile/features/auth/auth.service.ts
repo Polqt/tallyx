@@ -27,34 +27,28 @@ async function readJson(response: Response) {
 async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const { token, headers, ...requestOptions } = options;
   const url = `${API_URL}${path}`;
-  console.log(`[API Request] Fetching: ${url}`, { method: options.method || 'GET' });
-  
-  try {
-    const response = await fetch(url, {
-      ...requestOptions,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...headers,
-      },
-    });
-    const data = await readJson(response);
 
-    if (!response.ok) {
-      const message =
-        typeof data.error === 'string'
-          ? data.error
-          : typeof data.message === 'string'
-            ? data.message
-            : 'Request failed';
-      throw new Error(message);
-    }
+  const response = await fetch(url, {
+    ...requestOptions,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...headers,
+    },
+  });
+  const data = await readJson(response);
 
-    return data as T;
-  } catch (err: any) {
-    console.error(`[API Request Error] Failed for ${url}:`, err);
-    throw err;
+  if (!response.ok) {
+    const message =
+      typeof data.error === 'string'
+        ? data.error
+        : typeof data.message === 'string'
+          ? data.message
+          : 'Request failed';
+    throw new Error(message);
   }
+
+  return data as T;
 }
 
 export function getStoredAuthToken() {

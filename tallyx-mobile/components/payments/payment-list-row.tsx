@@ -2,6 +2,7 @@ import { TouchableOpacity, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Coins } from 'lucide-react-native';
 import type { PaymentItem } from '@/features/payments/payment.types';
+import { SyncBadge } from '@/components/common/sync-badge';
 import { getCustomerAvatarColor } from '@/utils/customers';
 import { formatPeso, formatDashboardDate } from '@/utils/dashboard';
 import { haptics } from '@/utils/haptics';
@@ -20,10 +21,7 @@ export function PaymentListRow({ item }: { item: PaymentItem }) {
   }
 
   return (
-    <TouchableOpacity
-      onPress={handlePress}
-      activeOpacity={0.75}
-    >
+    <TouchableOpacity onPress={handlePress} activeOpacity={0.75}>
       <View style={{
         backgroundColor: '#FFFFFF',
         borderRadius: 20,
@@ -52,14 +50,17 @@ export function PaymentListRow({ item }: { item: PaymentItem }) {
           </Text>
         </View>
 
-        {/* Name + date */}
+        {/* Name + date + sync */}
         <View style={{ flex: 1 }}>
           <Text style={{ fontFamily: 'Geist_600SemiBold', fontSize: 15, color: '#111827' }} numberOfLines={1}>
             {item.customer.name}
           </Text>
-          <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
-            {formatDashboardDate(item.createdAt)}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+            <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 12, color: '#9CA3AF' }}>
+              {formatDashboardDate(item.createdAt)}
+            </Text>
+            {item.syncStatus && <SyncBadge status={item.syncStatus} />}
+          </View>
         </View>
 
         {/* Amount + method */}

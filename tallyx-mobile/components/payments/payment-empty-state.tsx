@@ -21,7 +21,7 @@ export function PaymentEmptyState() {
         No payments recorded yet
       </Text>
       <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: '#9CA3AF', textAlign: 'center', marginTop: 6, lineHeight: 20 }}>
-        Keep track of your customer collections in one clean place. Tap the button below to log your store's first payment receipt!
+        Keep track of your customer collections in one clean place. Tap the button below to log your first payment receipt.
       </Text>
     </View>
   );

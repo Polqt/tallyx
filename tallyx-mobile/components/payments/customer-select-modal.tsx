@@ -29,8 +29,8 @@ export function CustomerSelectModal({ visible, onClose, onSelect }: Props) {
       try {
         const res = await fetchCustomers(token!, { query: search });
         if (active) setCustomers(res.items);
-      } catch (err) {
-        console.error('Failed to load customers for selector', err);
+      } catch {
+        if (active) setCustomers([]);
       } finally {
         if (active) setLoading(false);
       }

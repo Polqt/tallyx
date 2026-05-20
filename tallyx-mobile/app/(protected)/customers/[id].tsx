@@ -123,11 +123,7 @@ export default function CustomerDetailScreen() {
   }
 
   function openQrScreen() {
-    console.log('[CustomerDetailScreen] openQrScreen pressed', { customerId: customer?.id, customerName: customer?.name });
-    if (!customer) {
-      console.warn('[CustomerDetailScreen] openQrScreen aborted - customer detail object is empty!');
-      return;
-    }
+    if (!customer) return;
     haptics.light();
     router.push(
       `/(protected)/customers/qr?id=${customer.id}&name=${encodeURIComponent(customer.name)}&qr=${encodeURIComponent(customer.qrIdentity)}` as any

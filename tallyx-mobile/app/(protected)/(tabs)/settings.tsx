@@ -81,14 +81,7 @@ export default function Settings() {
           <TouchableOpacity
             onPress={handleResetOnboarding}
             activeOpacity={0.75}
-            style={{
-              height: 48,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: '#E5E7EB',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            style={{ height: 48, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' }}
           >
             <Text style={{ fontSize: 15, fontWeight: '500', color: '#374151' }}>Reset Onboarding</Text>
           </TouchableOpacity>
@@ -96,14 +89,7 @@ export default function Settings() {
           <TouchableOpacity
             onPress={handleSignOut}
             activeOpacity={0.75}
-            style={{
-              height: 48,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: '#FECACA',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            style={{ height: 48, borderRadius: 12, borderWidth: 1, borderColor: '#FECACA', alignItems: 'center', justifyContent: 'center' }}
           >
             <Text style={{ fontSize: 15, fontWeight: '700', color: '#DC2626' }}>Sign Out</Text>
           </TouchableOpacity>

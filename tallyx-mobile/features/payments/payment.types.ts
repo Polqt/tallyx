@@ -1,9 +1,12 @@
+export type PaymentSyncStatus = 'local' | 'pending' | 'syncing' | 'synced' | 'failed';
+
 export interface PaymentItem {
   id: string;
   creditId: string;
   amount: string;
   paymentMethod: 'cash' | 'usdc';
   stellarTxHash: string | null;
+  syncStatus?: PaymentSyncStatus;
   createdAt: string;
   credit: {
     id: string;

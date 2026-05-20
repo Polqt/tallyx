@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, BackHandler, FlatList, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, FlatList, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Plus, UsersRound } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { AddCustomerSheet } from '@/components/customers/add-customer-sheet';
@@ -9,7 +9,6 @@ import { CustomerEmptyState } from '@/components/customers/customer-empty-state'
 import { CustomerListRow } from '@/components/customers/customer-list-row';
 import { CustomerSearchBar } from '@/components/customers/customer-search-bar';
 import { useAuth } from '@/context/AuthContext';
-import { useNavVisibility } from '@/context/NavVisibilityContext';
 import { createCustomer, fetchCustomers } from '@/features/customers/customer.service';
 import type { CustomerListItem } from '@/features/customers/customer.types';
 import { haptics } from '@/utils/haptics';
@@ -18,7 +17,6 @@ import { haptics } from '@/utils/haptics';
 export default function Customers() {
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
-  const { hideNav, showNav } = useNavVisibility();
   const [customers, setCustomers] = useState<CustomerListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -127,13 +125,11 @@ export default function Customers() {
   }, [debouncedQuery, hasMore, loading, loadingMore, page, token]);
 
   function openSheet() {
-    console.log('[CustomersTab] openSheet called - displaying AddCustomerSheet Modal');
     haptics.light();
     setModalVisible(true);
   }
 
   function resetForm() {
-    console.log('[CustomersTab] resetForm called - hiding AddCustomerSheet Modal');
     setModalVisible(false);
     setNewName('');
     setNewPhone('');
@@ -145,17 +141,13 @@ export default function Customers() {
   }
 
   async function handleCreate() {
-    console.log('[CustomersTab] handleCreate triggered', { newName, newPhone, hasToken: Boolean(token) });
     if (!token) {
-      console.error('[CustomersTab] handleCreate aborted: Token is null or undefined!');
       return;
     }
     if (!newName.trim()) {
-      console.warn('[CustomersTab] handleCreate aborted: Name field is blank!');
       return;
     }
     if (newPhone.trim() && newPhone.trim().length < 7) {
-      console.warn('[CustomersTab] handleCreate aborted: Phone number is invalid', { newPhone });
       Toast.show({
         type: 'error',
         text1: 'Check the phone number',
