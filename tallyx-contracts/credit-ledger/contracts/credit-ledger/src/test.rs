@@ -285,3 +285,30 @@ fn test_get_credit_not_found_panics() {
     let client = setup(&env);
     client.get_credit(&999);
 }
+
+// ── authorization ───────────────────────────────────────────────────────────
+
+#[test]
+#[should_panic]
+fn test_create_credit_requires_store_owner_auth() {
+    let env = Env::default();
+    // No auths mocked — store_owner.require_auth() must reject
+    let client = setup(&env);
+    let owner = Address::generate(&env);
+    make_credit(&client, &env, &owner, "cust-auth", 100_000);
+}
+
+#[test]
+#[should_panic]
+fn test_record_payment_requires_store_owner_auth() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = setup(&env);
+    let owner = Address::generate(&env);
+
+    let id = make_credit(&client, &env, &owner, "cust-auth", 100_000);
+
+    // Remove all auths — the store owner's signature is no longer present
+    env.mock_auths(&[]);
+    client.record_payment(&id, &50_000);
+}
