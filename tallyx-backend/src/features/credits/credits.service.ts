@@ -160,19 +160,20 @@ export async function voidCreditForUser(userId: string, id: string) {
   if (credit.status === "paid") throw new AppError("Cannot void a fully paid credit", 400);
   if (credit.status === "voided") throw new AppError("Credit is already voided", 400);
 
-  const [paymentCount] = await db
-    .select({ total: count() })
-    .from(payments)
-    .where(eq(payments.creditId, id));
-  if ((paymentCount?.total ?? 0) > 0) {
-    throw new AppError("Cannot void a credit that has payments recorded against it", 400);
-  }
-
-  const [updated] = await db
-    .update(credits)
-    .set({ status: "voided", balance: "0", updatedAt: new Date() })
-    .where(eq(credits.id, id))
-    .returning();
+  const [updated] = await db.transaction(async (tx) => {
+    const [paymentCount] = await tx
+      .select({ total: count() })
+      .from(payments)
+      .where(eq(payments.creditId, id));
+    if ((paymentCount?.total ?? 0) > 0) {
+      throw new AppError("Cannot void a credit that has payments recorded against it", 400);
+    }
+    return tx
+      .update(credits)
+      .set({ status: "voided", balance: "0", updatedAt: new Date() })
+      .where(eq(credits.id, id))
+      .returning();
+  });
 
   return toCreditResponse(updated);
 }
@@ -231,15 +232,16 @@ export async function deleteCreditForUser(userId: string, id: string) {
     .limit(1);
   if (!credit) throw new AppError("Credit not found", 404);
 
-  const [paymentCount] = await db
-    .select({ total: count() })
-    .from(payments)
-    .where(eq(payments.creditId, id));
-  if ((paymentCount?.total ?? 0) > 0) {
-    throw new AppError("Cannot delete a credit that has payments recorded against it", 400);
-  }
-
-  await db.delete(credits).where(eq(credits.id, id));
+  await db.transaction(async (tx) => {
+    const [paymentCount] = await tx
+      .select({ total: count() })
+      .from(payments)
+      .where(eq(payments.creditId, id));
+    if ((paymentCount?.total ?? 0) > 0) {
+      throw new AppError("Cannot delete a credit that has payments recorded against it", 400);
+    }
+    await tx.delete(credits).where(eq(credits.id, id));
+  });
   return { id };
 }
 

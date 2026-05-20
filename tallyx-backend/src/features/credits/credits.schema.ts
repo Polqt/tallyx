@@ -21,6 +21,8 @@ export const payCreditSchema = z.object({
 export const updateCreditSchema = z.object({
   note: z.string().trim().max(280).optional().nullable(),
   dueDate: z.string().datetime().optional().nullable(),
+}).refine((v) => v.note !== undefined || v.dueDate !== undefined, {
+  message: "At least one field must be provided",
 });
 
 export type CreateCreditInput = z.infer<typeof createCreditSchema>;

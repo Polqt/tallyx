@@ -30,7 +30,7 @@ const apiLimiter = rateLimit({
 });
 
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS
+  origin: process.env.ALLOWED_ORIGINS?.trim()
     ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
     : ['http://localhost:3000', 'http://localhost:8081'],
   credentials: true,

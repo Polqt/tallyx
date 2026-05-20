@@ -59,7 +59,9 @@ export default function PaymentDetailScreen() {
   const initials = payment?.customer.name[0]?.toUpperCase() ?? '?';
 
   const creditPaidPercent = payment && Number(payment.credit.amount) > 0
-    ? Math.round(((Number(payment.credit.amount) - Number(payment.credit.balance)) / Number(payment.credit.amount)) * 100)
+    ? Math.max(0, Math.min(100, Math.round(
+        ((Number(payment.credit.amount) - Number(payment.credit.balance)) / Number(payment.credit.amount)) * 100
+      )))
     : 0;
 
   return (

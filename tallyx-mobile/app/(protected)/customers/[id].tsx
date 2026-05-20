@@ -112,7 +112,7 @@ export default function CustomerDetailScreen() {
       const phone = digits ? `+63${digits}` : null;
       await updateCustomer(token, customer.id, { name, phone });
       haptics.success();
-      setCustomer((prev) => prev ? { ...prev, name, phone: phone ?? undefined } : prev);
+      setCustomer((prev) => prev ? { ...prev, name, phone: phone ? phone.replace(/^\+63/, '') : undefined } : prev);
       setEditVisible(false);
     } catch (err) {
       haptics.error();

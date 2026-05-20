@@ -8,6 +8,8 @@ export const createCustomerSchema = z.object({
 export const updateCustomerSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
   phone: z.string().trim().min(7).max(20).optional().nullable(),
+}).refine((v) => v.name !== undefined || v.phone !== undefined, {
+  message: "At least one field must be provided",
 });
 
 export const listCustomersQuerySchema = z.object({

@@ -57,7 +57,7 @@ export function fetchCustomers(token: string, params: FetchCustomersParams = {})
 }
 
 export function fetchCustomerDetail(token: string, id: string, signal?: AbortSignal) {
-  return customerRequest<CustomerDetail>(`/customers/${id}`, token, { signal });
+  return customerRequest<CustomerDetail>(`/customers/${encodeURIComponent(id)}`, token, { signal });
 }
 
 export function createCustomer(token: string, input: CreateCustomerInput) {
@@ -68,12 +68,12 @@ export function createCustomer(token: string, input: CreateCustomerInput) {
 }
 
 export function updateCustomer(token: string, id: string, input: UpdateCustomerInput) {
-  return customerRequest<CustomerListItem>(`/customers/${id}`, token, {
+  return customerRequest<CustomerListItem>(`/customers/${encodeURIComponent(id)}`, token, {
     method: 'PATCH',
     body: JSON.stringify(input),
   });
 }
 
 export function deleteCustomer(token: string, id: string) {
-  return customerRequest<void>(`/customers/${id}`, token, { method: 'DELETE' });
+  return customerRequest<void>(`/customers/${encodeURIComponent(id)}`, token, { method: 'DELETE' });
 }

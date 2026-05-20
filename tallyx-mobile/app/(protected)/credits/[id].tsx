@@ -77,7 +77,9 @@ export default function CreditDetailScreen() {
     try {
       const updated = await updateCredit(token, credit.id, {
         note: editNote.trim() || null,
-        dueDate: editDueDate ? editDueDate.toISOString() : null,
+        dueDate: editDueDate
+          ? `${editDueDate.getFullYear()}-${String(editDueDate.getMonth() + 1).padStart(2, '0')}-${String(editDueDate.getDate()).padStart(2, '0')}T00:00:00.000Z`
+          : null,
       });
       haptics.success();
       setCredit(updated);

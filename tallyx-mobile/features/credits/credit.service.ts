@@ -54,7 +54,7 @@ export function fetchCredits(token: string, params: FetchCreditsParams = {}) {
 }
 
 export function fetchCredit(token: string, id: string, signal?: AbortSignal) {
-  return creditRequest<CreditListItem>(`/credits/${id}`, token, { signal });
+  return creditRequest<CreditListItem>(`/credits/${encodeURIComponent(id)}`, token, { signal });
 }
 
 export function createCredit(token: string, input: CreateCreditInput) {
@@ -65,20 +65,20 @@ export function createCredit(token: string, input: CreateCreditInput) {
 }
 
 export function voidCredit(token: string, id: string) {
-  return creditRequest<CreditListItem>(`/credits/${id}/void`, token, { method: 'PATCH' });
+  return creditRequest<CreditListItem>(`/credits/${encodeURIComponent(id)}/void`, token, { method: 'PATCH' });
 }
 
 export function unvoidCredit(token: string, id: string) {
-  return creditRequest<CreditListItem>(`/credits/${id}/unvoid`, token, { method: 'PATCH' });
+  return creditRequest<CreditListItem>(`/credits/${encodeURIComponent(id)}/unvoid`, token, { method: 'PATCH' });
 }
 
 export function updateCredit(token: string, id: string, input: { note?: string | null; dueDate?: string | null }) {
-  return creditRequest<CreditListItem>(`/credits/${id}`, token, {
+  return creditRequest<CreditListItem>(`/credits/${encodeURIComponent(id)}`, token, {
     method: 'PATCH',
     body: JSON.stringify(input),
   });
 }
 
 export function deleteCredit(token: string, id: string) {
-  return creditRequest<{ id: string }>(`/credits/${id}`, token, { method: 'DELETE' });
+  return creditRequest<{ id: string }>(`/credits/${encodeURIComponent(id)}`, token, { method: 'DELETE' });
 }
