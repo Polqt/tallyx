@@ -1,9 +1,25 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db } from "../../db/client.js";
 import { credits, customers, payments, stores } from "../../db/schema.js";
 import { AppError } from "../../middleware/errorHandler.js";
-import type { CreateStoreInput } from "./stores.schema.js";
+import type { CreateStoreInput, DashboardQuery } from "./stores.schema.js";
+
+function getPeriodStart(period: DashboardQuery["period"]): Date | null {
+  const now = new Date();
+  if (period === "week") {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 7);
+    return d;
+  }
+  if (period === "month") {
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+  if (period === "year") {
+    return new Date(now.getFullYear(), 0, 1);
+  }
+  return null;
+}
 
 export async function saveStore(userId: string, input: CreateStoreInput) {
   const [existingStore] = await db
@@ -47,11 +63,21 @@ export async function getStore(userId: string) {
   return { store };
 }
 
-export async function getDashboardSummary(userId: string) {
+export async function getDashboardSummary(userId: string, query: DashboardQuery = { period: "all" }) {
   const { store } = await getStore(userId);
+  const periodStart = getPeriodStart(query.period);
+
+  const creditWhere = periodStart
+    ? and(eq(credits.storeId, store.id), gte(credits.createdAt, periodStart))
+    : eq(credits.storeId, store.id);
+
+  const paymentWhere = periodStart
+    ? and(eq(credits.storeId, store.id), gte(payments.createdAt, periodStart))
+    : eq(credits.storeId, store.id);
+
   const [customerRows, creditRows, paymentRows] = await Promise.all([
     db.select().from(customers).where(eq(customers.storeId, store.id)),
-    db.select().from(credits).where(eq(credits.storeId, store.id)).orderBy(desc(credits.createdAt)),
+    db.select().from(credits).where(creditWhere).orderBy(desc(credits.createdAt)),
     db
       .select({
         id: payments.id,
@@ -64,7 +90,7 @@ export async function getDashboardSummary(userId: string) {
       .from(payments)
       .innerJoin(credits, eq(payments.creditId, credits.id))
       .innerJoin(customers, eq(credits.customerId, customers.id))
-      .where(eq(credits.storeId, store.id))
+      .where(paymentWhere)
       .orderBy(desc(payments.createdAt)),
   ]);
 

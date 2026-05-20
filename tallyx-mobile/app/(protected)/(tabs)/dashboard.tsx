@@ -63,7 +63,7 @@ export default function Dashboard() {
       setSummaryError(null);
 
       try {
-        const data = await fetchDashboardSummary(authToken, controller.signal);
+        const data = await fetchDashboardSummary(authToken, period, controller.signal);
         setSummary(data);
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') return;
@@ -75,7 +75,7 @@ export default function Dashboard() {
 
     loadDashboardSummary();
     return () => controller.abort();
-  }, [token]);
+  }, [token, period]);
 
   const waveRotate = waveAnim.interpolate({
     inputRange: [-0.5, 0, 1],
@@ -158,13 +158,13 @@ export default function Dashboard() {
                 activeOpacity={0.7}
                 style={{
                   flexDirection: 'row', alignItems: 'center', gap: 4,
-                  backgroundColor: '#FFFFFF',
-                  borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 20,
+                  backgroundColor: period !== 'All time' ? '#F0FDF4' : '#FFFFFF',
+                  borderWidth: 1, borderColor: period !== 'All time' ? '#86EFAC' : '#E5E7EB', borderRadius: 20,
                   paddingHorizontal: 12, paddingVertical: 6,
                 }}
               >
-                <Text style={{ fontFamily: 'Geist_500Medium', fontSize: 13, color: '#374151' }}>{period}</Text>
-                <ChevronDown size={13} color="#6B7280" strokeWidth={2} />
+                <Text style={{ fontFamily: 'Geist_500Medium', fontSize: 13, color: period !== 'All time' ? '#16A34A' : '#374151' }}>{period}</Text>
+                <ChevronDown size={13} color={period !== 'All time' ? '#16A34A' : '#6B7280'} strokeWidth={2} />
               </TouchableOpacity>
             </View>
 
