@@ -1,4 +1,5 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
+import { auditLog } from "../../middleware/audit.js";
 import { randomUUID } from "crypto";
 import { db } from "../../db/client.js";
 import { payments, credits, customers, stores } from "../../db/schema.js";
@@ -17,8 +18,23 @@ async function getStoreIdForUser(userId: string) {
   return store.id;
 }
 
-export async function getPaymentsByCreditId(creditId: string) {
-  return db.select().from(payments).where(eq(payments.creditId, creditId));
+export async function getPaymentsByCreditId(userId: string, creditId: string) {
+  const storeId = await getStoreIdForUser(userId);
+
+  return db
+    .select({
+      id: payments.id,
+      creditId: payments.creditId,
+      amount: payments.amount,
+      paymentMethod: payments.paymentMethod,
+      stellarTxHash: payments.stellarTxHash,
+      syncStatus: payments.syncStatus,
+      createdAt: payments.createdAt,
+    })
+    .from(payments)
+    .innerJoin(credits, eq(payments.creditId, credits.id))
+    .where(and(eq(payments.creditId, creditId), eq(credits.storeId, storeId)))
+    .orderBy(desc(payments.createdAt));
 }
 
 export async function getPaymentForUser(userId: string, paymentId: string) {
@@ -87,53 +103,86 @@ export async function getPaymentsForUser(userId: string) {
 export async function createPaymentForUser(userId: string, input: RecordPaymentInput) {
   const storeId = await getStoreIdForUser(userId);
 
-  const [credit] = await db
-    .select()
+  // Quick pre-flight: verify the credit exists and belongs to this store before
+  // entering the transaction. The authoritative balance check happens inside the
+  // transaction with FOR UPDATE to prevent concurrent payments from racing.
+  const [preflight] = await db
+    .select({ id: credits.id })
     .from(credits)
     .where(and(eq(credits.id, input.creditId), eq(credits.storeId, storeId)))
     .limit(1);
 
-  if (!credit) throw new AppError("Credit not found or unauthorized", 404);
-  if (credit.status === "paid") throw new AppError("Credit is already paid", 400);
-  if (credit.status === "voided") throw new AppError("Credit has been voided", 400);
+  if (!preflight) throw new AppError("Credit not found or unauthorized", 404);
 
-  const currentBalance = Number(credit.balance);
-  if (!Number.isFinite(currentBalance)) {
-    throw new AppError("Credit balance is invalid", 500);
-  }
-  if (input.amount > currentBalance) {
-    throw new AppError("Payment exceeds remaining balance", 400);
-  }
-
-  const newBalance = currentBalance - input.amount;
-  const newStatus = newBalance === 0 ? "paid" : "partial";
-
-  // Best-effort Soroban sync — DB write succeeds regardless.
-  // Only attempted if this credit was originally synced to the chain.
-  // TODO: add USDC transfer_from here once customer wallet approval flow exists
-  let txHash: string | null = null;
-  let syncStatus: "synced" | "failed" | "pending" = "pending";
-
-  if (credit.onChainCreditId) {
-    try {
-      const result = await recordPaymentOnChain({
-        onChainCreditId: credit.onChainCreditId,
-        amount: input.amount,
-      });
-      txHash = result.txHash;
-      syncStatus = "synced";
-    } catch (err) {
-      console.error("[Stellar] recordPaymentOnChain failed:", err);
-      syncStatus = "failed";
+  try {
+  return await db.transaction(async (tx) => {
+    // Idempotency check inside the transaction so concurrent duplicates can't
+    // both pass before either one has committed (the UNIQUE constraint is the
+    // final backstop, but checking here avoids a confusing constraint error).
+    if (input.idempotencyKey) {
+      const [existing] = await tx
+        .select()
+        .from(payments)
+        .where(eq(payments.idempotencyKey, input.idempotencyKey))
+        .limit(1);
+      if (existing) return existing;
     }
-  }
 
-  return db.transaction(async (tx) => {
+    // Lock the credit row for the duration of this transaction. Any concurrent
+    // payment on the same credit will block at this point until we commit,
+    // preventing two requests from both reading the same balance and both passing.
+    await tx.execute(
+      sql`SELECT id FROM credits WHERE id = ${input.creditId} FOR UPDATE`
+    );
+
+    // Re-read inside the transaction after acquiring the lock.
+    const [credit] = await tx
+      .select()
+      .from(credits)
+      .where(and(eq(credits.id, input.creditId), eq(credits.storeId, storeId)))
+      .limit(1);
+
+    if (!credit) throw new AppError("Credit not found or unauthorized", 404);
+    if (credit.status === "paid") throw new AppError("Credit is already paid", 400);
+    if (credit.status === "voided") throw new AppError("Credit has been voided", 400);
+
+    const currentBalance = Number(credit.balance);
+    if (!Number.isFinite(currentBalance)) {
+      throw new AppError("Credit balance is invalid", 500);
+    }
+    if (input.amount > currentBalance) {
+      throw new AppError("Payment exceeds remaining balance", 400);
+    }
+
+    const newBalance = currentBalance - input.amount;
+    const newStatus = newBalance === 0 ? "paid" : "partial";
+
+    // Best-effort Soroban sync — DB write succeeds regardless.
+    // Only attempted if this credit was originally synced to the chain.
+    // TODO: add USDC transfer_from here once customer wallet approval flow exists
+    let txHash: string | null = null;
+    let syncStatus: "synced" | "failed" | "pending" = "pending";
+
+    if (credit.onChainCreditId) {
+      try {
+        const result = await recordPaymentOnChain({
+          onChainCreditId: credit.onChainCreditId,
+          amount: input.amount,
+        });
+        txHash = result.txHash;
+        syncStatus = "synced";
+      } catch (err) {
+        console.error("[Stellar] recordPaymentOnChain failed:", err);
+        syncStatus = "failed";
+      }
+    }
+
     const [payment] = await tx
       .insert(payments)
       .values({
         id: randomUUID(),
         creditId: input.creditId,
+        idempotencyKey: input.idempotencyKey ?? null,
         amount: input.amount.toString(),
         paymentMethod: input.paymentMethod,
         stellarTxHash: txHash,
@@ -152,6 +201,29 @@ export async function createPaymentForUser(userId: string, input: RecordPaymentI
       })
       .where(eq(credits.id, input.creditId));
 
+    auditLog("payment.recorded", {
+      paymentId: payment.id,
+      creditId: input.creditId,
+      storeId,
+      userId,
+      amount: input.amount,
+      paymentMethod: input.paymentMethod,
+      syncStatus,
+    });
     return payment;
   });
+  } catch (err: unknown) {
+    // If two identical idempotency keys raced past the in-transaction check,
+    // the DB UNIQUE constraint fires. Return the existing payment instead of 500.
+    const msg = err instanceof Error ? err.message : '';
+    if (input.idempotencyKey && msg.includes('payments_idempotency_key_unique')) {
+      const [existing] = await db
+        .select()
+        .from(payments)
+        .where(eq(payments.idempotencyKey, input.idempotencyKey))
+        .limit(1);
+      if (existing) return existing;
+    }
+    throw err;
+  }
 }

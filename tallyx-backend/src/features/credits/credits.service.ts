@@ -1,4 +1,5 @@
-import { and, count, desc, eq, gt, inArray, lt, ne } from "drizzle-orm";
+import { and, count, desc, eq, gt, inArray, lt, ne, sql } from "drizzle-orm";
+import { auditLog } from "../../middleware/audit.js";
 import { randomUUID } from "crypto";
 import { db } from "../../db/client.js";
 import { credits, customers, payments, stores } from "../../db/schema.js";
@@ -157,6 +158,7 @@ export async function createCreditForUser(userId: string, input: CreateCreditInp
     })
     .returning();
 
+  auditLog("credit.created", { creditId, storeId, customerId: input.customerId, amount: input.amount });
   return toCreditResponse(credit, customer.name);
 }
 
@@ -176,16 +178,21 @@ export async function getCreditForUser(userId: string, id: string) {
 
 export async function voidCreditForUser(userId: string, id: string) {
   const storeId = await getStoreIdForUser(userId);
-  const [credit] = await db
-    .select()
-    .from(credits)
-    .where(and(eq(credits.id, id), eq(credits.storeId, storeId)))
-    .limit(1);
-  if (!credit) throw new AppError("Credit not found", 404);
-  if (credit.status === "paid") throw new AppError("Cannot void a fully paid credit", 400);
-  if (credit.status === "voided") throw new AppError("Credit is already voided", 400);
 
   const [updated] = await db.transaction(async (tx) => {
+    // Lock the credit row so a concurrent POST /payments cannot sneak in
+    // between our payment-count check and our status update.
+    await tx.execute(sql`SELECT id FROM credits WHERE id = ${id} FOR UPDATE`);
+
+    const [credit] = await tx
+      .select()
+      .from(credits)
+      .where(and(eq(credits.id, id), eq(credits.storeId, storeId)))
+      .limit(1);
+    if (!credit) throw new AppError("Credit not found", 404);
+    if (credit.status === "paid") throw new AppError("Cannot void a fully paid credit", 400);
+    if (credit.status === "voided") throw new AppError("Credit is already voided", 400);
+
     const [paymentCount] = await tx
       .select({ total: count() })
       .from(payments)
@@ -193,6 +200,7 @@ export async function voidCreditForUser(userId: string, id: string) {
     if ((paymentCount?.total ?? 0) > 0) {
       throw new AppError("Cannot void a credit that has payments recorded against it", 400);
     }
+
     return tx
       .update(credits)
       .set({ status: "voided", balance: "0", updatedAt: new Date() })
@@ -200,6 +208,7 @@ export async function voidCreditForUser(userId: string, id: string) {
       .returning();
   });
 
+  auditLog("credit.voided", { creditId: id, storeId, userId });
   return toCreditResponse(updated);
 }
 
@@ -219,6 +228,7 @@ export async function unvoidCreditForUser(userId: string, id: string) {
     .where(eq(credits.id, id))
     .returning();
 
+  auditLog("credit.unvoided", { creditId: id, storeId, userId });
   const customerNames = await getCustomerNames(storeId, [updated.customerId]);
   return toCreditResponse(updated, customerNames.get(updated.customerId));
 }
@@ -255,7 +265,11 @@ export async function deleteCreditForUser(userId: string, id: string) {
     .from(credits)
     .where(and(eq(credits.id, id), eq(credits.storeId, storeId)))
     .limit(1);
-  if (!credit) throw new AppError("Credit not found", 404);
+  // Already gone — treat as success (idempotent delete).
+  if (!credit) {
+    auditLog("credit.deleted", { creditId: id, storeId, userId, note: "already_absent" });
+    return { id };
+  }
 
   await db.transaction(async (tx) => {
     const [paymentCount] = await tx
@@ -267,6 +281,7 @@ export async function deleteCreditForUser(userId: string, id: string) {
     }
     await tx.delete(credits).where(eq(credits.id, id));
   });
+  auditLog("credit.deleted", { creditId: id, storeId, userId });
   return { id };
 }
 

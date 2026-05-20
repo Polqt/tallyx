@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { authenticate } from "../../middleware/authenticate.js";
+import { writeLimiter } from "../../middleware/rateLimiters.js";
 import { recordPaymentSchema } from "./payments.schema.js";
 import {
   getPaymentForUser,
@@ -26,7 +27,7 @@ paymentRouter.get("/", async (req: Request, res: Response, next: NextFunction) =
 
 // POST /payments
 // Records a partial or full payment on a credit entry
-paymentRouter.post("/", async (req: Request, res: Response, next: NextFunction) => {
+paymentRouter.post("/", writeLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const input = recordPaymentSchema.parse(req.body);
     const data = await createPaymentForUser(req.user!.id, input);
@@ -50,7 +51,7 @@ paymentRouter.get("/:id", async (req: Request, res: Response, next: NextFunction
 // Legacy helper to get payments for a specific credit
 paymentRouter.get("/credit/:creditId", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await getPaymentsByCreditId(req.params.creditId as string);
+    const data = await getPaymentsByCreditId(req.user!.id, req.params.creditId as string);
     res.json(data);
   } catch (err) {
     next(err);

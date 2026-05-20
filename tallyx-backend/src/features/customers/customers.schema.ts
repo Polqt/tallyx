@@ -2,12 +2,12 @@ import { z } from "zod";
 
 export const createCustomerSchema = z.object({
   name: z.string().trim().min(1).max(100),
-  phone: z.string().trim().min(7).max(20).optional(),
+  phone: z.string().trim().regex(/^[\d+\-()\s]{7,20}$/, "Invalid phone number format").optional(),
 });
 
 export const updateCustomerSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
-  phone: z.string().trim().min(7).max(20).optional().nullable(),
+  phone: z.string().trim().regex(/^[\d+\-()\s]{7,20}$/, "Invalid phone number format").optional().nullable(),
 }).refine((v) => v.name !== undefined || v.phone !== undefined, {
   message: "At least one field must be provided",
 });

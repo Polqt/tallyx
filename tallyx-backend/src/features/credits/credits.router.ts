@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { authenticate } from "../../middleware/authenticate.js";
+import { writeLimiter } from "../../middleware/rateLimiters.js";
 import { createCreditSchema, listCreditsQuerySchema, payCreditSchema, updateCreditSchema } from "./credits.schema.js";
 import {
   createCreditForUser,
@@ -38,7 +39,7 @@ creditRouter.get("/:id", async (req: Request, res: Response, next: NextFunction)
 });
 
 // POST /credits
-creditRouter.post("/", async (req: Request, res: Response, next: NextFunction) => {
+creditRouter.post("/", writeLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const input = createCreditSchema.parse(req.body);
     const data = await createCreditForUser(req.user!.id, input);
