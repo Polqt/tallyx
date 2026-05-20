@@ -17,7 +17,18 @@ async function getStoreIdForUser(userId: string) {
   return store.id;
 }
 
-export async function getPaymentsByCreditId(creditId: string) {
+export async function getPaymentsByCreditId(userId: string, creditId: string) {
+  const storeId = await getStoreIdForUser(userId);
+
+  // Validate credit is scoped strictly to the user's store
+  const [credit] = await db
+    .select()
+    .from(credits)
+    .where(and(eq(credits.id, creditId), eq(credits.storeId, storeId)))
+    .limit(1);
+
+  if (!credit) throw new AppError("Credit not found or unauthorized", 404);
+
   return db.select().from(payments).where(eq(payments.creditId, creditId));
 }
 
