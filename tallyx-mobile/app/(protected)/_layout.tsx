@@ -22,6 +22,7 @@ export default function ProtectedLayout() {
       <Stack.Screen name="customers/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="credits/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="credits/new" options={{ headerShown: true, title: 'New Credit', presentation: 'modal' }} />
+      <Stack.Screen name="payments/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="payments/new" options={{ headerShown: true, title: 'Record Payment', presentation: 'modal' }} />
       <Stack.Screen name="settings/guide" options={{ headerShown: false }} />
       <Stack.Screen name="settings/about" options={{ headerShown: false }} />

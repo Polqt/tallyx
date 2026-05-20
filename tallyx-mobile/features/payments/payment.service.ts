@@ -52,6 +52,10 @@ export function fetchPayments(token: string, signal?: AbortSignal) {
   return paymentRequest<PaymentItem[]>('/payments', token, { signal });
 }
 
+export function fetchPayment(token: string, id: string, signal?: AbortSignal) {
+  return paymentRequest<PaymentItem>(`/payments/${id}`, token, { signal });
+}
+
 export function recordPayment(token: string, input: RecordPaymentInput) {
   return paymentRequest<PaymentItem>('/payments', token, {
     method: 'POST',
