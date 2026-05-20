@@ -17,8 +17,39 @@ async function getStoreIdForUser(userId: string) {
   return store.id;
 }
 
-export async function getPaymentsByCreditId(creditId: string) {
-  return db.select().from(payments).where(eq(payments.creditId, creditId));
+export async function getPaymentsByCreditId(userId: string, creditId: string) {
+  const storeId = await getStoreIdForUser(userId);
+
+  const rows = await db
+    .select({
+      id: payments.id,
+      creditId: payments.creditId,
+      amount: payments.amount,
+      paymentMethod: payments.paymentMethod,
+      stellarTxHash: payments.stellarTxHash,
+      createdAt: payments.createdAt,
+    })
+    .from(credits)
+    .leftJoin(payments, eq(credits.id, payments.creditId))
+    .where(and(eq(credits.id, creditId), eq(credits.storeId, storeId)));
+
+  if (rows.length === 0) {
+    throw new AppError("Credit not found or unauthorized", 404);
+  }
+
+  // If there are no payments, leftJoin returns a single row with all payment fields as null
+  if (rows.length === 1 && !rows[0].id) {
+    return [];
+  }
+
+  return rows.map((row) => ({
+    id: row.id!,
+    creditId: row.creditId!,
+    amount: row.amount!,
+    paymentMethod: row.paymentMethod!,
+    stellarTxHash: row.stellarTxHash,
+    createdAt: row.createdAt!,
+  }));
 }
 
 export async function getPaymentForUser(userId: string, paymentId: string) {
