@@ -1,5 +1,3 @@
-import { randomUUID } from "crypto";
-
 const BASE_URL = "http://localhost:3000";
 
 async function runTests() {

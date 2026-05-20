@@ -20,16 +20,36 @@ async function getStoreIdForUser(userId: string) {
 export async function getPaymentsByCreditId(userId: string, creditId: string) {
   const storeId = await getStoreIdForUser(userId);
 
-  // Validate credit is scoped strictly to the user's store
-  const [credit] = await db
-    .select()
+  const rows = await db
+    .select({
+      id: payments.id,
+      creditId: payments.creditId,
+      amount: payments.amount,
+      paymentMethod: payments.paymentMethod,
+      stellarTxHash: payments.stellarTxHash,
+      createdAt: payments.createdAt,
+    })
     .from(credits)
-    .where(and(eq(credits.id, creditId), eq(credits.storeId, storeId)))
-    .limit(1);
+    .leftJoin(payments, eq(credits.id, payments.creditId))
+    .where(and(eq(credits.id, creditId), eq(credits.storeId, storeId)));
 
-  if (!credit) throw new AppError("Credit not found or unauthorized", 404);
+  if (rows.length === 0) {
+    throw new AppError("Credit not found or unauthorized", 404);
+  }
 
-  return db.select().from(payments).where(eq(payments.creditId, creditId));
+  // If there are no payments, leftJoin returns a single row with all payment fields as null
+  if (rows.length === 1 && !rows[0].id) {
+    return [];
+  }
+
+  return rows.map((row) => ({
+    id: row.id!,
+    creditId: row.creditId!,
+    amount: row.amount!,
+    paymentMethod: row.paymentMethod!,
+    stellarTxHash: row.stellarTxHash,
+    createdAt: row.createdAt!,
+  }));
 }
 
 export async function getPaymentForUser(userId: string, paymentId: string) {

@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { authenticate } from "../../middleware/authenticate.js";
+import { AppError } from "../../middleware/errorHandler.js";
 import { recordPaymentSchema } from "./payments.schema.js";
 import {
   getPaymentForUser,
@@ -17,7 +18,8 @@ paymentRouter.use(authenticate);
 // Retrieves the global transaction history of payments for the authenticated user's store
 paymentRouter.get("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await getPaymentsForUser(req.user!.id);
+    if (!req.user) throw new AppError("Unauthorized", 401);
+    const data = await getPaymentsForUser(req.user.id);
     res.json(data);
   } catch (err) {
     next(err);
@@ -28,8 +30,9 @@ paymentRouter.get("/", async (req: Request, res: Response, next: NextFunction) =
 // Records a partial or full payment on a credit entry
 paymentRouter.post("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) throw new AppError("Unauthorized", 401);
     const input = recordPaymentSchema.parse(req.body);
-    const data = await createPaymentForUser(req.user!.id, input);
+    const data = await createPaymentForUser(req.user.id, input);
     res.status(201).json(data);
   } catch (err) {
     next(err);
@@ -39,7 +42,8 @@ paymentRouter.post("/", async (req: Request, res: Response, next: NextFunction) 
 // GET /payments/:id
 paymentRouter.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await getPaymentForUser(req.user!.id, req.params.id as string);
+    if (!req.user) throw new AppError("Unauthorized", 401);
+    const data = await getPaymentForUser(req.user.id, req.params.id as string);
     res.json(data);
   } catch (err) {
     next(err);
@@ -50,7 +54,8 @@ paymentRouter.get("/:id", async (req: Request, res: Response, next: NextFunction
 // Legacy helper to get payments for a specific credit
 paymentRouter.get("/credit/:creditId", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await getPaymentsByCreditId(req.user!.id, req.params.creditId as string);
+    if (!req.user) throw new AppError("Unauthorized", 401);
+    const data = await getPaymentsByCreditId(req.user.id, req.params.creditId as string);
     res.json(data);
   } catch (err) {
     next(err);
