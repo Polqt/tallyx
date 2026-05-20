@@ -26,13 +26,11 @@ export default function CreditDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Action states
   const [voiding, setVoiding] = useState(false);
   const [unvoiding, setUnvoiding] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
 
-  // Edit modal
   const [editVisible, setEditVisible] = useState(false);
   const [editNote, setEditNote] = useState('');
   const [editDueDate, setEditDueDate] = useState<Date | null>(null);
@@ -195,7 +193,6 @@ export default function CreditDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FFFFFF', paddingTop: insets.top }}>
-      {/* Nav bar */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
         <TouchableOpacity
           onPress={() => { haptics.light(); router.back(); }}
@@ -238,7 +235,6 @@ export default function CreditDetailScreen() {
       ) : credit && status && sync && SyncIcon ? (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 24 }}>
 
-          {/* Hero */}
           <View style={{ alignItems: 'center', paddingTop: 32, paddingBottom: 28, paddingHorizontal: 24 }}>
             <View style={{ paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, marginBottom: 16, backgroundColor: credit.status === 'paid' ? '#F0FDF4' : credit.status === 'voided' ? '#F3F4F6' : credit.status === 'overdue' ? '#FEF2F2' : credit.status === 'partial' ? '#EFF6FF' : '#FFFBEB' }}>
               <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: credit.status === 'paid' ? '#16A34A' : credit.status === 'overdue' ? '#DC2626' : credit.status === 'voided' ? '#6B7280' : credit.status === 'partial' ? '#2563EB' : '#D97706' }}>
@@ -254,7 +250,6 @@ export default function CreditDetailScreen() {
             </Text>
           </View>
 
-          {/* Progress bar */}
           {credit.amount > 0 && (
             <View style={{ marginHorizontal: 24, marginBottom: 32 }}>
               <View style={{ height: 6, borderRadius: 3, backgroundColor: '#F3F4F6', overflow: 'hidden' }}>
@@ -271,7 +266,6 @@ export default function CreditDetailScreen() {
             </View>
           )}
 
-          {/* Customer */}
           <View style={{ marginHorizontal: 20, marginBottom: 12 }}>
             <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 20, paddingVertical: 18 }}>
               <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Customer</Text>
@@ -279,7 +273,6 @@ export default function CreditDetailScreen() {
             </View>
           </View>
 
-          {/* Dates */}
           <View style={{ marginHorizontal: 20, marginBottom: 12, flexDirection: 'row', gap: 10 }}>
             <View style={{ flex: 1, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 16, paddingVertical: 18 }}>
               <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Recorded</Text>
@@ -293,7 +286,6 @@ export default function CreditDetailScreen() {
             </View>
           </View>
 
-          {/* Note */}
           {credit.note ? (
             <View style={{ marginHorizontal: 20, marginBottom: 12 }}>
               <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 20, paddingVertical: 18 }}>
@@ -303,7 +295,6 @@ export default function CreditDetailScreen() {
             </View>
           ) : null}
 
-          {/* Blockchain — flex: 1 so it stretches to fill remaining space */}
           <View style={{ marginHorizontal: 20, marginBottom: 12, flex: 1 }}>
             <View style={{ flex: 1, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 20, paddingVertical: 18 }}>
               <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Blockchain</Text>
@@ -322,7 +313,6 @@ export default function CreditDetailScreen() {
         </ScrollView>
       ) : null}
 
-      {/* Action menu sheet */}
       <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
         <Pressable
           style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}
@@ -385,7 +375,6 @@ export default function CreditDetailScreen() {
         </Pressable>
       </Modal>
 
-      {/* Edit modal */}
       <Modal visible={editVisible} transparent animationType="slide" onRequestClose={() => setEditVisible(false)}>
         <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }} onPress={() => setEditVisible(false)}>
           <Pressable onPress={() => {}}>
