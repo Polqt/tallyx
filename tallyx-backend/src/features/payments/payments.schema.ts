@@ -5,6 +5,7 @@ export const recordPaymentSchema = z.object({
   amount: z.number().int().positive(),
   paymentMethod: z.enum(["cash", "usdc"]),
   stellarTxHash: z.string().optional(),
+  idempotencyKey: z.string().max(128).optional(),
 });
 
 export type RecordPaymentInput = z.infer<typeof recordPaymentSchema>;

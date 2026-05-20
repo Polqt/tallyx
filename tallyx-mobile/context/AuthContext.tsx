@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { useStoreStore } from '@/stores/store.store';
+import { registerUnauthorizedHandler } from '@/utils/api-client';
 import type { AuthUser, StoreProfileResponse } from '@/features/auth/auth.types';
 import {
   clearAuthToken,
@@ -29,6 +30,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const signingOut = useRef(false);
+
+  // Register a module-level callback so any service's apiRequest can trigger
+  // sign-out without needing access to React context.
+  useEffect(() => {
+    registerUnauthorizedHandler(() => {
+      if (signingOut.current) return;
+      signingOut.current = true;
+      clearAuthToken().finally(() => {
+        useStoreStore.getState().clearProfile();
+        setToken(null);
+        setUser(null);
+        signingOut.current = false;
+        router.replace('/(auth)/sign-in');
+      });
+    });
+  }, []);
 
   function cacheStoreProfile(data: StoreProfileResponse) {
     const store = data.store;
@@ -65,9 +83,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (data.user.hasStore) {
           await fetchStoreProfile(storedToken);
         }
-      } catch {
-        await clearAuthToken();
-        useStoreStore.getState().clearProfile();
+      } catch (err) {
+        // Only clear the token when the server explicitly rejects it (401).
+        // Network errors should leave the token in place so the user doesn't
+        // get signed out on a flaky connection at startup.
+        const message = err instanceof Error ? err.message : '';
+        if (message.includes('Session expired') || message.includes('401')) {
+          await clearAuthToken();
+          useStoreStore.getState().clearProfile();
+        }
       } finally {
         setIsLoading(false);
       }

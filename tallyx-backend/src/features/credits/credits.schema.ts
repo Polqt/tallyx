@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const createCreditSchema = z.object({
   customerId: z.string().uuid(),
-  amount: z.number().int().positive(),
+  amount: z.number().int().positive().max(100_000_000),
   dueDate: z.string().datetime().optional(),
   note: z.string().trim().max(280).optional(),
 });

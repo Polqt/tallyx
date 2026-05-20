@@ -72,6 +72,6 @@ export async function getMe(userId: string) {
   return { user: await safeUser(user) };
 }
 
-export async function forgotPassword(_identifier: string) {
-  return { message: "If an account exists, a reset link has been sent" };
+export async function forgotPassword(_identifier: string): Promise<never> {
+  throw new AppError("Password reset is not yet implemented", 501);
 }
