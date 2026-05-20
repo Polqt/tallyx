@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "../../db/client.js";
 import { credits, customers, payments, stores } from "../../db/schema.js";
 import { AppError } from "../../middleware/errorHandler.js";
-import type { CreateCustomerInput, ListCustomersQuery } from "./customers.schema.js";
+import type { CreateCustomerInput, ListCustomersQuery, UpdateCustomerInput } from "./customers.schema.js";
 
 async function getStoreIdForUser(userId: string) {
   const [store] = await db
@@ -156,6 +156,34 @@ export async function getCustomerForUser(userId: string, id: string) {
       date: payment.createdAt.toISOString(),
       stellarTxHash: payment.stellarTxHash,
     })),
+  };
+}
+
+export async function updateCustomerForUser(userId: string, customerId: string, input: UpdateCustomerInput) {
+  const storeId = await getStoreIdForUser(userId);
+  const [customer] = await db
+    .select()
+    .from(customers)
+    .where(and(eq(customers.id, customerId), eq(customers.storeId, storeId)))
+    .limit(1);
+
+  if (!customer) throw new AppError("Customer not found", 404);
+
+  const [updated] = await db
+    .update(customers)
+    .set({
+      ...(input.name !== undefined ? { name: input.name } : {}),
+      ...(input.phone !== undefined ? { phone: input.phone ?? null } : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(customers.id, customerId))
+    .returning();
+
+  return {
+    ...updated,
+    qrIdentity: toQrIdentity(updated.id, updated.storeId),
+    balance: 0,
+    lastTransactionDate: null,
   };
 }
 

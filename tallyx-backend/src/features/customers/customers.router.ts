@@ -1,10 +1,11 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { createCustomerSchema, listCustomersQuerySchema } from "./customers.schema.js";
+import { createCustomerSchema, listCustomersQuerySchema, updateCustomerSchema } from "./customers.schema.js";
 import {
   createCustomerForUser,
   deleteCustomerForUser,
   getCustomerForUser,
   getCustomersForUser,
+  updateCustomerForUser,
 } from "./customers.service.js";
 import { authenticate } from "../../middleware/authenticate.js";
 
@@ -39,6 +40,17 @@ customerRouter.post("/", async (req: Request, res: Response, next: NextFunction)
     const input = createCustomerSchema.parse(req.body);
     const data = await createCustomerForUser(req.user!.id, input);
     res.status(201).json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /customers/:id
+customerRouter.patch("/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const input = updateCustomerSchema.parse(req.body);
+    const data = await updateCustomerForUser(req.user!.id, req.params.id as string, input);
+    res.json(data);
   } catch (err) {
     next(err);
   }

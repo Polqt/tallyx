@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, ChevronRight, QrCode, ReceiptText, Trash2, TrendingUp } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Pencil, QrCode, ReceiptText, Trash2, TrendingUp } from 'lucide-react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useAuth } from '@/context/AuthContext';
-import { deleteCustomer, fetchCustomerDetail } from '@/features/customers/customer.service';
+import { deleteCustomer, fetchCustomerDetail, updateCustomer } from '@/features/customers/customer.service';
 import type { CustomerDetail } from '@/features/customers/customer.types';
 import { formatDashboardDate, formatPeso } from '@/utils/dashboard';
 import { getCustomerAvatarColor } from '@/utils/customers';
@@ -20,6 +20,12 @@ export default function CustomerDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [editVisible, setEditVisible] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [saving, setSaving] = useState(false);
+  const nameInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (!token || !id) { setLoading(false); return; }
@@ -82,6 +88,39 @@ export default function CustomerDetailScreen() {
     );
   }
 
+  function openEdit() {
+    if (!customer) return;
+    haptics.light();
+    setEditName(customer.name);
+    setEditPhone(customer.phone ? customer.phone.replace(/^\+63/, '') : '');
+    setEditVisible(true);
+    setTimeout(() => nameInputRef.current?.focus(), 150);
+  }
+
+  async function handleEditSave() {
+    if (!token || !customer || saving) return;
+    const name = editName.trim();
+    if (!name) {
+      Alert.alert('Name required', 'Customer name cannot be empty.');
+      return;
+    }
+    haptics.medium();
+    setSaving(true);
+    try {
+      const digits = editPhone.replace(/\D/g, '');
+      const phone = digits ? `+63${digits}` : null;
+      await updateCustomer(token, customer.id, { name, phone });
+      haptics.success();
+      setCustomer((prev) => prev ? { ...prev, name, phone: phone ?? undefined } : prev);
+      setEditVisible(false);
+    } catch (err) {
+      haptics.error();
+      Alert.alert('Update failed', err instanceof Error ? err.message : 'Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function openQrScreen() {
     console.log('[CustomerDetailScreen] openQrScreen pressed', { customerId: customer?.id, customerName: customer?.name });
     if (!customer) {
@@ -119,6 +158,9 @@ export default function CustomerDetailScreen() {
         </TouchableOpacity>
         <Text className="text-[17px] font-bold text-gray-900">Customer</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity onPress={openEdit} activeOpacity={0.7} className="h-9 w-9 items-center justify-center rounded-full bg-gray-100">
+            <Pencil size={16} color="#374151" strokeWidth={2} />
+          </TouchableOpacity>
           <TouchableOpacity onPress={openQrScreen} activeOpacity={0.7} className="h-9 w-9 items-center justify-center rounded-full bg-green-50">
             <QrCode size={18} color="#16A34A" strokeWidth={2} />
           </TouchableOpacity>
@@ -296,6 +338,96 @@ export default function CustomerDetailScreen() {
 
         </ScrollView>
       ) : null}
+
+      <Modal
+        visible={editVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditVisible(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}
+          onPress={() => setEditVisible(false)}
+        >
+          <Pressable onPress={() => {}}>
+            <View style={{
+              backgroundColor: '#FFFFFF',
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              paddingTop: 12,
+              paddingHorizontal: 24,
+              paddingBottom: insets.bottom + 24,
+            }}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#E5E7EB', alignSelf: 'center', marginBottom: 20 }} />
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 20 }}>Edit Customer</Text>
+
+              <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', marginBottom: 6 }}>Name</Text>
+              <TextInput
+                ref={nameInputRef}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Customer name"
+                placeholderTextColor="#D1D5DB"
+                autoCapitalize="words"
+                style={{
+                  height: 48,
+                  borderRadius: 14,
+                  backgroundColor: '#F9FAFB',
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  paddingHorizontal: 16,
+                  fontSize: 15,
+                  color: '#111827',
+                  marginBottom: 16,
+                }}
+              />
+
+              <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', marginBottom: 6 }}>Phone number</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 28 }}>
+                <View style={{
+                  height: 48, paddingHorizontal: 12,
+                  borderTopLeftRadius: 14, borderBottomLeftRadius: 14,
+                  backgroundColor: '#F3F4F6',
+                  borderWidth: 1, borderColor: '#E5E7EB', borderRightWidth: 0,
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Text style={{ fontSize: 15, color: '#374151', fontWeight: '500' }}>+63</Text>
+                </View>
+                <TextInput
+                  value={editPhone}
+                  onChangeText={(t) => setEditPhone(t.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="9XX XXX XXXX"
+                  placeholderTextColor="#D1D5DB"
+                  keyboardType="phone-pad"
+                  style={{
+                    flex: 1, height: 48,
+                    borderTopRightRadius: 14, borderBottomRightRadius: 14,
+                    backgroundColor: '#F9FAFB',
+                    borderWidth: 1, borderColor: '#E5E7EB',
+                    paddingHorizontal: 14, fontSize: 15, color: '#111827',
+                  }}
+                />
+              </View>
+
+              <TouchableOpacity
+                onPress={handleEditSave}
+                disabled={saving || !editName.trim()}
+                activeOpacity={0.85}
+                style={{
+                  height: 52, borderRadius: 26,
+                  backgroundColor: saving || !editName.trim() ? '#D1FAE5' : '#16A34A',
+                  alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                {saving
+                  ? <ActivityIndicator size="small" color="#86EFAC" />
+                  : <Text style={{ fontSize: 16, fontWeight: '600', color: saving || !editName.trim() ? '#86EFAC' : '#FFFFFF' }}>Save Changes</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

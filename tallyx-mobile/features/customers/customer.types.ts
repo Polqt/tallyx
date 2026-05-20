@@ -65,3 +65,8 @@ export interface CreateCustomerInput {
   name: string;
   phone?: string;
 }
+
+export interface UpdateCustomerInput {
+  name?: string;
+  phone?: string | null;
+}

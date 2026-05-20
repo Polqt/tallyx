@@ -4,6 +4,7 @@ import type {
   CustomerListItem,
   CustomerListResponse,
   FetchCustomersParams,
+  UpdateCustomerInput,
 } from './customer.types';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
@@ -62,6 +63,13 @@ export function fetchCustomerDetail(token: string, id: string, signal?: AbortSig
 export function createCustomer(token: string, input: CreateCustomerInput) {
   return customerRequest<CustomerListItem>('/customers', token, {
     method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateCustomer(token: string, id: string, input: UpdateCustomerInput) {
+  return customerRequest<CustomerListItem>(`/customers/${id}`, token, {
+    method: 'PATCH',
     body: JSON.stringify(input),
   });
 }
