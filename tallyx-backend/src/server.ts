@@ -12,7 +12,12 @@ import { errorHandler } from "./middleware/errorHandler.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+    : ['http://localhost:3000', 'http://localhost:8081'],
+  credentials: true,
+}));
 app.use(express.json());
 
 // Routes
