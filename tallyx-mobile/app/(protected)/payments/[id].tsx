@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Coins, Copy, Shield } from 'lucide-react-native';
-import * as Clipboard from 'expo-clipboard';
+import { ChevronLeft, Coins, ExternalLink, Shield } from 'lucide-react-native';
+import { SyncBadge } from '@/components/common/sync-badge';
+import { openTransactionExplorer } from '@/features/stellar/stellar.service';
 import { useAuth } from '@/context/AuthContext';
 import { fetchPayment } from '@/features/payments/payment.service';
 import type { PaymentItem } from '@/features/payments/payment.types';
@@ -41,13 +42,6 @@ export default function PaymentDetailScreen() {
     load();
     return () => controller.abort();
   }, [id, token]);
-
-  async function handleCopyHash() {
-    if (!payment?.stellarTxHash) return;
-    haptics.light();
-    await Clipboard.setStringAsync(payment.stellarTxHash);
-    Alert.alert('Copied', 'Transaction hash copied to clipboard.');
-  }
 
   const isUsdc = payment?.paymentMethod === 'usdc';
   const amountText = payment
@@ -176,19 +170,26 @@ export default function PaymentDetailScreen() {
           {/* Blockchain */}
           <View style={{ marginHorizontal: 20, marginBottom: 10 }}>
             <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', padding: 16 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                <Shield size={13} color="#9CA3AF" strokeWidth={2} />
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1 }}>Blockchain</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Shield size={13} color="#9CA3AF" strokeWidth={2} />
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1 }}>Blockchain</Text>
+                </View>
+                <SyncBadge status={payment.syncStatus} />
               </View>
               {payment.stellarTxHash ? (
-                <TouchableOpacity onPress={handleCopyHash} activeOpacity={0.7} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Text style={{ fontSize: 13, color: '#374151', flex: 1, fontFamily: 'Geist_400Regular' }} numberOfLines={1}>
+                <TouchableOpacity
+                  onPress={() => { haptics.light(); openTransactionExplorer(payment.stellarTxHash!); }}
+                  activeOpacity={0.7}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+                >
+                  <Text style={{ fontSize: 13, color: '#2563EB', flex: 1, fontFamily: 'Geist_400Regular' }} numberOfLines={1}>
                     {compactKey(payment.stellarTxHash)}
                   </Text>
-                  <Copy size={14} color="#9CA3AF" />
+                  <ExternalLink size={14} color="#2563EB" />
                 </TouchableOpacity>
               ) : (
-                <Text style={{ fontSize: 13, color: '#9CA3AF' }}>Not yet synced on-chain</Text>
+                <Text style={{ fontSize: 13, color: '#9CA3AF' }}>Not synced on-chain</Text>
               )}
             </View>
           </View>

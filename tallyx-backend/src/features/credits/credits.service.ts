@@ -270,40 +270,9 @@ export async function deleteCreditForUser(userId: string, id: string) {
   return { id };
 }
 
-export async function payCreditForUser(userId: string, id: string, input: PayCreditInput) {
-  const storeId = await getStoreIdForUser(userId);
-  const [credit] = await db
-    .select()
-    .from(credits)
-    .where(and(eq(credits.id, id), eq(credits.storeId, storeId)))
-    .limit(1);
-  if (!credit) throw new AppError("Credit not found", 404);
-  if (credit.status === "paid") throw new AppError("Credit is already paid", 400);
-  if (credit.status === "voided") throw new AppError("Credit has been voided", 400);
-
-  const currentBalance = Number(credit.balance);
-  if (!Number.isFinite(currentBalance)) {
-    throw new AppError("Credit balance is invalid", 500);
-  }
-
-  if (input.amount > currentBalance) {
-    throw new AppError("Payment exceeds remaining balance", 400);
-  }
-
-  const newBalance = currentBalance - input.amount;
-  const newStatus = (newBalance === 0 ? "paid" : "partial") satisfies CreditStatus;
-
-  // Stellar sync for payments is handled by payments.service.ts#createPaymentForUser.
-  // payCreditForUser only updates the DB balance/status.
-  const [updated] = await db
-    .update(credits)
-    .set({
-      balance: newBalance.toString(),
-      status: newStatus,
-      updatedAt: new Date(),
-    })
-    .where(eq(credits.id, id))
-    .returning();
-
-  return toCreditResponse(updated);
+// Deprecated: payments must go through POST /payments (payments.service.ts#createPaymentForUser)
+// to ensure a payment row is inserted and Stellar sync is attempted.
+// This endpoint only updates credit balance/status — it skips payment recording entirely.
+export async function payCreditForUser(_userId: string, _id: string, _input: PayCreditInput): Promise<never> {
+  throw new AppError("Use POST /payments to record a payment.", 400);
 }

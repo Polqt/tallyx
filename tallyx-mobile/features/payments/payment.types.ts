@@ -6,7 +6,7 @@ export interface PaymentItem {
   amount: string;
   paymentMethod: 'cash' | 'usdc';
   stellarTxHash: string | null;
-  syncStatus?: PaymentSyncStatus;
+  syncStatus: PaymentSyncStatus;
   createdAt: string;
   credit: {
     id: string;

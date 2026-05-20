@@ -51,5 +51,6 @@ export const payments = pgTable("payments", {
   amount: text("amount").notNull(),
   paymentMethod: text("payment_method").notNull().default("cash"),
   stellarTxHash: text("stellar_tx_hash"),
+  syncStatus: text("sync_status").notNull().default("pending"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

@@ -31,6 +31,7 @@ export async function getPaymentForUser(userId: string, paymentId: string) {
       amount: payments.amount,
       paymentMethod: payments.paymentMethod,
       stellarTxHash: payments.stellarTxHash,
+      syncStatus: payments.syncStatus,
       createdAt: payments.createdAt,
       credit: {
         id: credits.id,
@@ -63,6 +64,7 @@ export async function getPaymentsForUser(userId: string) {
       amount: payments.amount,
       paymentMethod: payments.paymentMethod,
       stellarTxHash: payments.stellarTxHash,
+      syncStatus: payments.syncStatus,
       createdAt: payments.createdAt,
       credit: {
         id: credits.id,
@@ -135,6 +137,7 @@ export async function createPaymentForUser(userId: string, input: RecordPaymentI
         amount: input.amount.toString(),
         paymentMethod: input.paymentMethod,
         stellarTxHash: txHash,
+        syncStatus,
       })
       .returning();
 
@@ -149,6 +152,6 @@ export async function createPaymentForUser(userId: string, input: RecordPaymentI
       })
       .where(eq(credits.id, input.creditId));
 
-    return { ...payment, syncStatus, stellarTxHash: txHash };
+    return payment;
   });
 }

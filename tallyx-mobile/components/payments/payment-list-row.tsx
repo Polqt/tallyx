@@ -59,7 +59,7 @@ export function PaymentListRow({ item }: { item: PaymentItem }) {
             <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 12, color: '#9CA3AF' }}>
               {formatDashboardDate(item.createdAt)}
             </Text>
-            {item.syncStatus && <SyncBadge status={item.syncStatus} />}
+            <SyncBadge status={item.syncStatus} />
           </View>
         </View>
 
