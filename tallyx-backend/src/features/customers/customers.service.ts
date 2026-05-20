@@ -169,22 +169,16 @@ export async function updateCustomerForUser(userId: string, customerId: string, 
 
   if (!customer) throw new AppError("Customer not found", 404);
 
-  const [updated] = await db
+  await db
     .update(customers)
     .set({
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.phone !== undefined ? { phone: input.phone ?? null } : {}),
       updatedAt: new Date(),
     })
-    .where(eq(customers.id, customerId))
-    .returning();
+    .where(eq(customers.id, customerId));
 
-  return {
-    ...updated,
-    qrIdentity: toQrIdentity(updated.id, updated.storeId),
-    balance: 0,
-    lastTransactionDate: null,
-  };
+  return getCustomerForUser(userId, customerId);
 }
 
 export async function deleteCustomerForUser(userId: string, customerId: string) {
