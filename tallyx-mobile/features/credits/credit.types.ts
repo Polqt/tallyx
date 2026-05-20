@@ -1,4 +1,4 @@
-export type CreditStatus = 'pending' | 'partial' | 'paid' | 'overdue';
+export type CreditStatus = 'pending' | 'partial' | 'paid' | 'overdue' | 'voided';
 export type CreditSyncStatus = 'pending' | 'synced' | 'failed';
 
 export interface CreditListItem {
@@ -34,6 +34,7 @@ export interface FetchCreditsParams {
   page?: number;
   limit?: number;
   customerId?: string;
+  status?: CreditStatus;
   signal?: AbortSignal;
 }
 

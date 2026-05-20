@@ -21,6 +21,38 @@ export async function getPaymentsByCreditId(creditId: string) {
   return db.select().from(payments).where(eq(payments.creditId, creditId));
 }
 
+export async function getPaymentForUser(userId: string, paymentId: string) {
+  const storeId = await getStoreIdForUser(userId);
+
+  const [row] = await db
+    .select({
+      id: payments.id,
+      creditId: payments.creditId,
+      amount: payments.amount,
+      paymentMethod: payments.paymentMethod,
+      stellarTxHash: payments.stellarTxHash,
+      createdAt: payments.createdAt,
+      credit: {
+        id: credits.id,
+        amount: credits.amount,
+        balance: credits.balance,
+        status: credits.status,
+      },
+      customer: {
+        id: customers.id,
+        name: customers.name,
+      },
+    })
+    .from(payments)
+    .innerJoin(credits, eq(payments.creditId, credits.id))
+    .innerJoin(customers, eq(credits.customerId, customers.id))
+    .where(and(eq(payments.id, paymentId), eq(credits.storeId, storeId)))
+    .limit(1);
+
+  if (!row) throw new AppError("Payment not found", 404);
+  return row;
+}
+
 export async function getPaymentsForUser(userId: string) {
   const storeId = await getStoreIdForUser(userId);
 

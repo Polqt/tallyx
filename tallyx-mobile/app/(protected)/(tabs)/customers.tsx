@@ -36,11 +36,30 @@ export default function Customers() {
 
 
   const fadeAnims = useRef<Record<string, Animated.Value>>({});
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query.trim()), 250);
     return () => clearTimeout(timer);
   }, [query]);
+
+  useEffect(() => {
+    if (customers.length === 0 && !loading) {
+      pulseLoop.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.06, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+          Animated.delay(1800),
+        ])
+      );
+      pulseLoop.current.start();
+    } else {
+      pulseLoop.current?.stop();
+      pulseAnim.setValue(1);
+    }
+    return () => pulseLoop.current?.stop();
+  }, [customers.length, loading, pulseAnim]);
 
   useEffect(() => {
     if (!token) {
@@ -271,22 +290,35 @@ export default function Customers() {
         />
       )}
 
-      {customers.length > 0 && !modalVisible && (
-        <TouchableOpacity
-          onPress={openSheet}
-          activeOpacity={0.85}
-          className="absolute right-5 w-14 h-14 rounded-full bg-green-600 items-center justify-center"
+      {!modalVisible && (
+        <Animated.View
           style={{
+            position: 'absolute',
+            right: 20,
             bottom: insets.bottom + 90,
-            shadowColor: '#16A34A',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.4,
-            shadowRadius: 10,
-            elevation: 8,
+            transform: [{ scale: pulseAnim }],
           }}
         >
-          <Plus size={24} color="#FFFFFF" strokeWidth={2.5} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={openSheet}
+            activeOpacity={0.85}
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: '#16A34A',
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#16A34A',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.45,
+              shadowRadius: 12,
+              elevation: 10,
+            }}
+          >
+            <Plus size={24} color="#FFFFFF" strokeWidth={2.5} />
+          </TouchableOpacity>
+        </Animated.View>
       )}
 
       <AddCustomerSheet

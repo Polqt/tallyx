@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { authenticate } from "../../middleware/authenticate.js";
 import { recordPaymentSchema } from "./payments.schema.js";
 import {
+  getPaymentForUser,
   getPaymentsByCreditId,
   getPaymentsForUser,
   createPaymentForUser,
@@ -30,6 +31,16 @@ paymentRouter.post("/", async (req: Request, res: Response, next: NextFunction) 
     const input = recordPaymentSchema.parse(req.body);
     const data = await createPaymentForUser(req.user!.id, input);
     res.status(201).json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /payments/:id
+paymentRouter.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await getPaymentForUser(req.user!.id, req.params.id as string);
+    res.json(data);
   } catch (err) {
     next(err);
   }

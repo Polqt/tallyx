@@ -9,7 +9,7 @@ export interface PaymentItem {
     id: string;
     amount: string;
     balance: string;
-    status: 'active' | 'partial' | 'paid';
+    status: 'pending' | 'partial' | 'paid' | 'overdue' | 'voided';
   };
   customer: {
     id: string;

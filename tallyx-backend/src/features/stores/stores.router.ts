@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { createStoreSchema } from "./stores.schema.js";
+import { createStoreSchema, dashboardQuerySchema } from "./stores.schema.js";
 import { saveStore, getDashboardSummary, getStore } from "./stores.service.js";
 import { authenticate } from "../../middleware/authenticate.js";
 
@@ -10,7 +10,8 @@ storesRouter.use(authenticate);
 // GET /stores/dashboard
 storesRouter.get("/dashboard", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await getDashboardSummary(req.user!.id);
+    const query = dashboardQuerySchema.parse(req.query);
+    const result = await getDashboardSummary(req.user!.id, query);
     res.json(result);
   } catch (err) {
     next(err);

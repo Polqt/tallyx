@@ -6,4 +6,9 @@ export const createStoreSchema = z.object({
   stellarPublicKey: z.string().optional(),
 });
 
+export const dashboardQuerySchema = z.object({
+  period: z.enum(["all", "week", "month", "year"]).default("all"),
+});
+
 export type CreateStoreInput = z.infer<typeof createStoreSchema>;
+export type DashboardQuery = z.infer<typeof dashboardQuerySchema>;
