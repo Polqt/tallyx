@@ -17,10 +17,8 @@ export interface CreateCreditOnChainInput {
   storeId: string;
   amount: number;
   dueDateUnix?: number;
-  // Customer's Stellar address for USDC settlement. Falls back to store owner if not set.
-  customerStellarAddress?: string;
-  // USDC token contract ID on this network. Defaults to testnet USDC.
-  usdcContractId?: string;
+  // TODO: add customerStellarAddress once customer wallet support is added
+  // TODO: add usdcContractId once USDC settlement flow is implemented
 }
 
 export interface RecordPaymentOnChainInput {
@@ -101,6 +99,7 @@ async function submitContractCall(
 
 /**
  * Calls the Soroban credit-ledger contract's `create_credit` function.
+ * Records the credit as a verification entry on-chain (ledger-only, no token transfer).
  * Returns the transaction hash and the on-chain credit ID assigned by the contract.
  */
 export async function createCreditOnChain(
@@ -112,27 +111,12 @@ export async function createCreditOnChain(
 
   const dueDateUnix = input.dueDateUnix ?? 0;
 
-  // Use customer's Stellar address if provided, otherwise fall back to store owner.
-  const customerAddress = input.customerStellarAddress
-    ? new Address(input.customerStellarAddress)
-    : storeOwnerAddress;
-
-  // Testnet USDC contract (Circle): use env override or the well-known testnet address.
-  const usdcContractId =
-    input.usdcContractId ??
-    process.env.USDC_CONTRACT_ID ??
-    "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA"; // testnet USDC
-
-  const usdcAddress = new Address(usdcContractId);
-
   const args: xdr.ScVal[] = [
     storeOwnerAddress.toScVal(),
     nativeToScVal(input.storeId, { type: "string" }),
-    customerAddress.toScVal(),
     nativeToScVal(input.customerId, { type: "string" }),
     nativeToScVal(BigInt(input.amount), { type: "i128" }),
     nativeToScVal(BigInt(dueDateUnix), { type: "u64" }),
-    usdcAddress.toScVal(),
   ];
 
   const { txHash, returnValue } = await submitContractCall("create_credit", args);
@@ -145,7 +129,10 @@ export async function createCreditOnChain(
 
 /**
  * Calls the Soroban credit-ledger contract's `record_payment` function.
+ * Records the payment as a proof on-chain (ledger-only, no USDC transfer).
  * `onChainCreditId` is the u64 ID returned by `create_credit` at issuance time.
+ *
+ * TODO: add USDC transfer_from once customer wallet approval flow exists
  */
 export async function recordPaymentOnChain(
   input: RecordPaymentOnChainInput,
