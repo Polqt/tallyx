@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Modal, Platform, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Clock3, ShieldCheck, WifiOff, XCircle } from 'lucide-react-native';
+import { CalendarDays, ChevronLeft, Clock3, MoreHorizontal, Pencil, ShieldCheck, Trash2, WifiOff, XCircle, RotateCcw } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '@/context/AuthContext';
-import { fetchCredit, voidCredit } from '@/features/credits/credit.service';
+import { deleteCredit, fetchCredit, unvoidCredit, updateCredit, voidCredit } from '@/features/credits/credit.service';
 import type { CreditListItem } from '@/features/credits/credit.types';
 import { statusStyles } from '@/utils/credit';
 import { formatDashboardDate, formatPeso } from '@/utils/dashboard';
@@ -24,7 +25,20 @@ export default function CreditDetailScreen() {
   const [credit, setCredit] = useState<CreditListItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Action states
   const [voiding, setVoiding] = useState(false);
+  const [unvoiding, setUnvoiding] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  // Edit modal
+  const [editVisible, setEditVisible] = useState(false);
+  const [editNote, setEditNote] = useState('');
+  const [editDueDate, setEditDueDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const noteInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (!token || !id) { setLoading(false); return; }
@@ -48,17 +62,43 @@ export default function CreditDetailScreen() {
     return () => controller.abort();
   }, [id, token]);
 
+  function openEdit() {
+    if (!credit) return;
+    setEditNote(credit.note ?? '');
+    setEditDueDate(credit.dueDate ? new Date(credit.dueDate) : null);
+    setShowDatePicker(false);
+    setMenuVisible(false);
+    setEditVisible(true);
+    setTimeout(() => noteInputRef.current?.focus(), 150);
+  }
+
+  async function handleEditSave() {
+    if (!credit || !token || saving) return;
+    setSaving(true);
+    haptics.medium();
+    try {
+      const updated = await updateCredit(token, credit.id, {
+        note: editNote.trim() || null,
+        dueDate: editDueDate ? editDueDate.toISOString() : null,
+      });
+      haptics.success();
+      setCredit(updated);
+      setEditVisible(false);
+    } catch (err) {
+      haptics.error();
+      Alert.alert('Could not save', err instanceof Error ? err.message : 'Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function handleVoid() {
     if (!credit || !token) return;
-    if (credit.status === 'voided') return;
-    if (credit.status === 'paid') {
-      Alert.alert('Cannot void', 'This credit has already been fully paid.');
-      return;
-    }
+    setMenuVisible(false);
     haptics.medium();
     Alert.alert(
       'Void credit?',
-      `This will cancel the ${formatPeso(credit.amount)} credit for ${credit.customerName ?? 'this customer'}. This cannot be undone.`,
+      `This will cancel the ${formatPeso(credit.amount)} credit for ${credit.customerName ?? 'this customer'}. Cannot be undone if it has payments.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -72,9 +112,68 @@ export default function CreditDetailScreen() {
               setCredit((prev) => prev ? { ...prev, status: 'voided', balance: 0 } : prev);
             } catch (err) {
               haptics.error();
-              Alert.alert('Could not void credit', err instanceof Error ? err.message : 'Please try again.');
+              Alert.alert('Could not void', err instanceof Error ? err.message : 'Please try again.');
             } finally {
               setVoiding(false);
+            }
+          },
+        },
+      ]
+    );
+  }
+
+  function handleUnvoid() {
+    if (!credit || !token) return;
+    setMenuVisible(false);
+    haptics.medium();
+    Alert.alert(
+      'Restore credit?',
+      `This will restore the ${formatPeso(credit.amount)} credit back to pending.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Restore',
+          onPress: async () => {
+            setUnvoiding(true);
+            try {
+              const updated = await unvoidCredit(token, credit.id);
+              haptics.success();
+              setCredit(updated);
+            } catch (err) {
+              haptics.error();
+              Alert.alert('Could not restore', err instanceof Error ? err.message : 'Please try again.');
+            } finally {
+              setUnvoiding(false);
+            }
+          },
+        },
+      ]
+    );
+  }
+
+  function handleDelete() {
+    if (!credit || !token) return;
+    setMenuVisible(false);
+    haptics.medium();
+    Alert.alert(
+      'Delete credit?',
+      `This will permanently delete the ${formatPeso(credit.amount)} credit record. Credits with payments cannot be deleted.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await deleteCredit(token, credit.id);
+              haptics.success();
+              router.back();
+            } catch (err) {
+              haptics.error();
+              Alert.alert('Could not delete', err instanceof Error ? err.message : 'Please try again.');
+            } finally {
+              setDeleting(false);
             }
           },
         },
@@ -86,9 +185,13 @@ export default function CreditDetailScreen() {
   const sync = credit ? (syncConfig[credit.syncStatus] ?? syncConfig.pending) : null;
   const SyncIcon = sync?.Icon;
   const canVoid = credit && credit.status !== 'voided' && credit.status !== 'paid';
+  const canUnvoid = credit && credit.status === 'voided';
+  const canEdit = credit && credit.status !== 'paid' && credit.status !== 'voided';
   const paidPercent = credit && credit.amount > 0
     ? Math.round(((credit.amount - credit.balance) / credit.amount) * 100)
     : 0;
+
+  const isBusy = voiding || unvoiding || deleting;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FFFFFF', paddingTop: insets.top }}>
@@ -105,16 +208,16 @@ export default function CreditDetailScreen() {
 
         <Text style={{ fontSize: 17, fontWeight: '700', color: '#111827' }}>Credit Detail</Text>
 
-        {canVoid ? (
+        {credit ? (
           <TouchableOpacity
-            onPress={handleVoid}
+            onPress={() => { haptics.light(); setMenuVisible(true); }}
             activeOpacity={0.7}
-            disabled={voiding}
-            style={{ height: 36, width: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, backgroundColor: '#FEF2F2' }}
+            disabled={isBusy}
+            style={{ height: 36, width: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, backgroundColor: '#F3F4F6' }}
           >
-            {voiding
-              ? <ActivityIndicator size="small" color="#DC2626" />
-              : <XCircle size={18} color="#DC2626" strokeWidth={2} />
+            {isBusy
+              ? <ActivityIndicator size="small" color="#6B7280" />
+              : <MoreHorizontal size={20} color="#374151" strokeWidth={2} />
             }
           </TouchableOpacity>
         ) : (
@@ -133,10 +236,11 @@ export default function CreditDetailScreen() {
           <Text style={{ marginTop: 6, fontSize: 13, color: '#9CA3AF', textAlign: 'center' }}>{error}</Text>
         </View>
       ) : credit && status && sync && SyncIcon ? (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 36 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 24 }}>
 
-          <View style={{ alignItems: 'center', paddingTop: 32, paddingBottom: 24, paddingHorizontal: 24 }}>
-            <View style={{ paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, marginBottom: 16, backgroundColor: status.bg.replace('bg-', '') === status.bg ? '#F3F4F6' : undefined }}>
+          {/* Hero */}
+          <View style={{ alignItems: 'center', paddingTop: 32, paddingBottom: 28, paddingHorizontal: 24 }}>
+            <View style={{ paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, marginBottom: 16, backgroundColor: credit.status === 'paid' ? '#F0FDF4' : credit.status === 'voided' ? '#F3F4F6' : credit.status === 'overdue' ? '#FEF2F2' : credit.status === 'partial' ? '#EFF6FF' : '#FFFBEB' }}>
               <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: credit.status === 'paid' ? '#16A34A' : credit.status === 'overdue' ? '#DC2626' : credit.status === 'voided' ? '#6B7280' : credit.status === 'partial' ? '#2563EB' : '#D97706' }}>
                 {status.label}
               </Text>
@@ -150,8 +254,9 @@ export default function CreditDetailScreen() {
             </Text>
           </View>
 
+          {/* Progress bar */}
           {credit.amount > 0 && (
-            <View style={{ marginHorizontal: 24, marginBottom: 28 }}>
+            <View style={{ marginHorizontal: 24, marginBottom: 32 }}>
               <View style={{ height: 6, borderRadius: 3, backgroundColor: '#F3F4F6', overflow: 'hidden' }}>
                 <View style={{
                   height: 6,
@@ -166,20 +271,22 @@ export default function CreditDetailScreen() {
             </View>
           )}
 
-          <View style={{ marginHorizontal: 20, marginBottom: 10 }}>
-            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', padding: 16 }}>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Customer</Text>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827' }}>{credit.customerName ?? '—'}</Text>
+          {/* Customer */}
+          <View style={{ marginHorizontal: 20, marginBottom: 12 }}>
+            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 20, paddingVertical: 18 }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Customer</Text>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: '#111827' }}>{credit.customerName ?? '—'}</Text>
             </View>
           </View>
 
-          <View style={{ marginHorizontal: 20, marginBottom: 10, flexDirection: 'row', gap: 10 }}>
-            <View style={{ flex: 1, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', padding: 16 }}>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Recorded</Text>
+          {/* Dates */}
+          <View style={{ marginHorizontal: 20, marginBottom: 12, flexDirection: 'row', gap: 10 }}>
+            <View style={{ flex: 1, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 16, paddingVertical: 18 }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Recorded</Text>
               <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{formatDashboardDate(credit.createdAt)}</Text>
             </View>
-            <View style={{ flex: 1, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', padding: 16 }}>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Due Date</Text>
+            <View style={{ flex: 1, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 16, paddingVertical: 18 }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Due Date</Text>
               <Text style={{ fontSize: 14, fontWeight: '600', color: credit.status === 'overdue' ? '#DC2626' : '#111827' }}>
                 {credit.dueDate ? formatDashboardDate(credit.dueDate) : 'None'}
               </Text>
@@ -188,24 +295,24 @@ export default function CreditDetailScreen() {
 
           {/* Note */}
           {credit.note ? (
-            <View style={{ marginHorizontal: 20, marginBottom: 10 }}>
-              <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', padding: 16 }}>
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Note</Text>
-                <Text style={{ fontSize: 14, color: '#374151', lineHeight: 20 }}>{credit.note}</Text>
+            <View style={{ marginHorizontal: 20, marginBottom: 12 }}>
+              <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 20, paddingVertical: 18 }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Note</Text>
+                <Text style={{ fontSize: 14, color: '#374151', lineHeight: 22 }}>{credit.note}</Text>
               </View>
             </View>
           ) : null}
 
-          {/* Blockchain sync */}
-          <View style={{ marginHorizontal: 20, marginBottom: 10 }}>
-            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', padding: 16 }}>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Blockchain</Text>
+          {/* Blockchain — flex: 1 so it stretches to fill remaining space */}
+          <View style={{ marginHorizontal: 20, marginBottom: 12, flex: 1 }}>
+            <View style={{ flex: 1, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 20, paddingVertical: 18 }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Blockchain</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <SyncIcon size={15} color={sync.color} strokeWidth={2.2} />
                 <Text style={{ fontSize: 14, fontWeight: '600', color: sync.color }}>{sync.label}</Text>
               </View>
               {credit.stellarTxHash ? (
-                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 6 }} numberOfLines={1}>
+                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8 }} numberOfLines={1}>
                   {credit.stellarTxHash}
                 </Text>
               ) : null}
@@ -214,6 +321,136 @@ export default function CreditDetailScreen() {
 
         </ScrollView>
       ) : null}
+
+      {/* Action menu sheet */}
+      <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}
+          onPress={() => setMenuVisible(false)}
+        >
+          <Pressable onPress={() => {}}>
+            <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 12, paddingBottom: insets.bottom + 24 }}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#E5E7EB', alignSelf: 'center', marginBottom: 20 }} />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: '#9CA3AF', paddingHorizontal: 20, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
+                Credit Actions
+              </Text>
+
+              {canEdit && (
+                <TouchableOpacity onPress={openEdit} activeOpacity={0.7} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 16 }}>
+                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}>
+                    <Pencil size={16} color="#374151" strokeWidth={2} />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#111827' }}>Edit Credit</Text>
+                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }}>Change note or due date</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+
+              {canVoid && (
+                <TouchableOpacity onPress={handleVoid} activeOpacity={0.7} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 16 }}>
+                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center' }}>
+                    <XCircle size={16} color="#DC2626" strokeWidth={2} />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#DC2626' }}>Void Credit</Text>
+                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }}>Cancel this credit (no payments)</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+
+              {canUnvoid && (
+                <TouchableOpacity onPress={handleUnvoid} activeOpacity={0.7} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 16 }}>
+                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F0FDF4', alignItems: 'center', justifyContent: 'center' }}>
+                    <RotateCcw size={16} color="#16A34A" strokeWidth={2} />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#16A34A' }}>Restore Credit</Text>
+                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }}>Un-void and set back to pending</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity onPress={handleDelete} activeOpacity={0.7} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 16 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center' }}>
+                  <Trash2 size={16} color="#DC2626" strokeWidth={2} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#DC2626' }}>Delete Credit</Text>
+                  <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }}>Permanently remove (no payments)</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Edit modal */}
+      <Modal visible={editVisible} transparent animationType="slide" onRequestClose={() => setEditVisible(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }} onPress={() => setEditVisible(false)}>
+          <Pressable onPress={() => {}}>
+            <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 12, paddingBottom: insets.bottom + 24, paddingHorizontal: 20 }}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#E5E7EB', alignSelf: 'center', marginBottom: 20 }} />
+              <Text style={{ fontSize: 17, fontWeight: '700', color: '#111827', marginBottom: 20 }}>Edit Credit</Text>
+
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>Note</Text>
+              <TextInput
+                ref={noteInputRef}
+                value={editNote}
+                onChangeText={setEditNote}
+                placeholder="Add a note..."
+                placeholderTextColor="#D1D5DB"
+                multiline
+                style={{ backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: '#111827', minHeight: 80, textAlignVertical: 'top', marginBottom: 16 }}
+              />
+
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>Due Date</Text>
+              <TouchableOpacity
+                onPress={() => setShowDatePicker(true)}
+                activeOpacity={0.7}
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14, marginBottom: 24 }}
+              >
+                <Text style={{ fontSize: 15, color: editDueDate ? '#111827' : '#D1D5DB' }}>
+                  {editDueDate ? editDueDate.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Select a date'}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  {editDueDate && (
+                    <TouchableOpacity onPress={() => setEditDueDate(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Text style={{ fontSize: 12, color: '#9CA3AF' }}>Clear</Text>
+                    </TouchableOpacity>
+                  )}
+                  <CalendarDays size={16} color="#9CA3AF" strokeWidth={2} />
+                </View>
+              </TouchableOpacity>
+
+              {showDatePicker && (
+                <DateTimePicker
+                  value={editDueDate ?? new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                  minimumDate={new Date()}
+                  onChange={(_, selected) => {
+                    setShowDatePicker(Platform.OS === 'ios');
+                    if (selected) setEditDueDate(selected);
+                  }}
+                />
+              )}
+
+              <TouchableOpacity
+                onPress={handleEditSave}
+                disabled={saving}
+                activeOpacity={0.85}
+                style={{ backgroundColor: '#14532D', borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
+              >
+                {saving
+                  ? <ActivityIndicator size="small" color="#FFFFFF" />
+                  : <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>Save Changes</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

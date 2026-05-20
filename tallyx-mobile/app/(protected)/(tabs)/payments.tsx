@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, useNavigation } from 'expo-router';
+import { router, useNavigation, useLocalSearchParams } from 'expo-router';
 import { Plus, History } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import { fetchPayments } from '@/features/payments/payment.service';
@@ -23,6 +23,7 @@ export default function Payments() {
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const navigation = useNavigation();
+  const { customerId } = useLocalSearchParams<{ customerId?: string }>();
 
   const [payments, setPayments] = useState<PaymentItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +32,8 @@ export default function Payments() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(12)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
 
   // Trigger animations
   useEffect(() => {
@@ -83,8 +86,29 @@ export default function Payments() {
     router.push('/(protected)/payments/new');
   };
 
-  // Calculate dynamic summary stats
-  const totalCollections = payments.reduce((sum, item) => sum + Number(item.amount), 0);
+  const visiblePayments = customerId
+    ? payments.filter((p) => p.customer.id === customerId)
+    : payments;
+
+  const totalCollections = visiblePayments.reduce((sum, item) => sum + Number(item.amount), 0);
+
+  // Pulse FAB when no payments
+  useEffect(() => {
+    if (visiblePayments.length === 0 && !loading) {
+      pulseLoop.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.06, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+          Animated.delay(1800),
+        ])
+      );
+      pulseLoop.current.start();
+    } else {
+      pulseLoop.current?.stop();
+      pulseAnim.setValue(1);
+    }
+    return () => pulseLoop.current?.stop();
+  }, [visiblePayments.length, loading, pulseAnim]);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
@@ -122,7 +146,8 @@ export default function Payments() {
               {formatPeso(totalCollections)}
             </Text>
             <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 8 }}>
-              {payments.length} successful payment{payments.length !== 1 ? 's' : ''} logged
+              {visiblePayments.length} successful payment{visiblePayments.length !== 1 ? 's' : ''} logged
+            {customerId ? ' · filtered by customer' : ''}
             </Text>
           </View>
         </Animated.View>
@@ -166,11 +191,11 @@ export default function Payments() {
               <Text style={{ fontFamily: 'Geist_600SemiBold', fontSize: 13, color: '#FFFFFF' }}>Try Again</Text>
             </TouchableOpacity>
           </View>
-        ) : payments.length === 0 ? (
+        ) : visiblePayments.length === 0 ? (
           <PaymentEmptyState />
         ) : (
           <FlatList
-            data={payments}
+            data={visiblePayments}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => <PaymentListRow item={item} />}
             contentContainerStyle={{ 
@@ -191,39 +216,34 @@ export default function Payments() {
         )}
       </View>
 
-      {/* Floating Action Button */}
-      <View 
-        style={{ 
-          position: 'absolute', 
-          bottom: insets.bottom + 85, 
-          left: 20, 
-          right: 20 
+      <Animated.View
+        style={{
+          position: 'absolute',
+          right: 20,
+          bottom: insets.bottom + 90,
+          transform: [{ scale: pulseAnim }],
         }}
       >
         <TouchableOpacity
           onPress={handleRecordNew}
-          activeOpacity={0.9}
+          activeOpacity={0.85}
           style={{
-            backgroundColor: '#14532D',
-            flexDirection: 'row',
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            backgroundColor: '#16A34A',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 8,
-            paddingVertical: 16,
-            borderRadius: 20,
-            shadowColor: '#14532D',
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.15,
-            shadowRadius: 16,
-            elevation: 4,
+            shadowColor: '#16A34A',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.45,
+            shadowRadius: 12,
+            elevation: 10,
           }}
         >
-          <Plus size={18} color="#FFFFFF" strokeWidth={2.5} />
-          <Text style={{ fontFamily: 'Geist_600SemiBold', fontSize: 15, color: '#FFFFFF' }}>
-            Record Payment
-          </Text>
+          <Plus size={24} color="#FFFFFF" strokeWidth={2.5} />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
     </View>
   );
 }

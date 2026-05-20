@@ -32,7 +32,7 @@ export interface CustomerCredit {
   id: string;
   amount: number;
   balance: number;
-  status: string;
+  status: 'pending' | 'partial' | 'paid' | 'overdue' | 'voided';
   note?: string | null;
   date: string;
   dueDate?: string | null;

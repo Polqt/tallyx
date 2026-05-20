@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, TextInput
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, ChevronRight, Pencil, QrCode, ReceiptText, Trash2, TrendingUp } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, MoreHorizontal, Pencil, QrCode, ReceiptText, Trash2, TrendingUp } from 'lucide-react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useAuth } from '@/context/AuthContext';
 import { deleteCustomer, fetchCustomerDetail, updateCustomer } from '@/features/customers/customer.service';
@@ -20,6 +20,7 @@ export default function CustomerDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const [editVisible, setEditVisible] = useState(false);
   const [editName, setEditName] = useState('');
@@ -157,25 +158,21 @@ export default function CustomerDetailScreen() {
           <ChevronLeft size={20} color="#111827" strokeWidth={2.5} />
         </TouchableOpacity>
         <Text className="text-[17px] font-bold text-gray-900">Customer</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <TouchableOpacity onPress={openEdit} activeOpacity={0.7} className="h-9 w-9 items-center justify-center rounded-full bg-gray-100">
-            <Pencil size={16} color="#374151" strokeWidth={2} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={openQrScreen} activeOpacity={0.7} className="h-9 w-9 items-center justify-center rounded-full bg-green-50">
-            <QrCode size={18} color="#16A34A" strokeWidth={2} />
-          </TouchableOpacity>
+        {customer ? (
           <TouchableOpacity
-            onPress={handleDelete}
+            onPress={() => { haptics.light(); setMenuVisible(true); }}
             activeOpacity={0.7}
             disabled={deleting}
-            style={{ height: 36, width: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, backgroundColor: '#FEF2F2' }}
+            style={{ height: 36, width: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, backgroundColor: '#F3F4F6' }}
           >
             {deleting
-              ? <ActivityIndicator size="small" color="#DC2626" />
-              : <Trash2 size={17} color="#DC2626" strokeWidth={2} />
+              ? <ActivityIndicator size="small" color="#6B7280" />
+              : <MoreHorizontal size={20} color="#374151" strokeWidth={2} />
             }
           </TouchableOpacity>
-        </View>
+        ) : (
+          <View style={{ width: 36 }} />
+        )}
       </View>
 
       {loading ? (
@@ -338,6 +335,65 @@ export default function CustomerDetailScreen() {
 
         </ScrollView>
       ) : null}
+
+      {/* Action menu sheet */}
+      <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}
+          onPress={() => setMenuVisible(false)}
+        >
+          <Pressable onPress={() => {}}>
+            <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 12, paddingBottom: insets.bottom + 24 }}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#E5E7EB', alignSelf: 'center', marginBottom: 20 }} />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: '#9CA3AF', paddingHorizontal: 20, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
+                Customer Actions
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => { setMenuVisible(false); openEdit(); }}
+                activeOpacity={0.7}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 16 }}
+              >
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}>
+                  <Pencil size={16} color="#374151" strokeWidth={2} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#111827' }}>Edit Customer</Text>
+                  <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }}>Change name or phone number</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => { setMenuVisible(false); openQrScreen(); }}
+                activeOpacity={0.7}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 16 }}
+              >
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F0FDF4', alignItems: 'center', justifyContent: 'center' }}>
+                  <QrCode size={16} color="#16A34A" strokeWidth={2} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#111827' }}>Show QR Code</Text>
+                  <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }}>Display QR for scanning at checkout</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => { setMenuVisible(false); handleDelete(); }}
+                activeOpacity={0.7}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 16 }}
+              >
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center' }}>
+                  <Trash2 size={16} color="#DC2626" strokeWidth={2} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#DC2626' }}>Delete Customer</Text>
+                  <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }}>Permanently remove this customer</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal
         visible={editVisible}

@@ -182,7 +182,6 @@ export default function Credits() {
 
   const renderHeader = useCallback(() => (
     <View className="gap-4 pb-4">
-      {/* Ledger card */}
       <View
         style={{
           backgroundColor: '#14532D',
@@ -223,16 +222,17 @@ export default function Credits() {
             </View>
           </View>
 
-          {/* View Ledger pill */}
           <View
             style={{
-              backgroundColor: 'rgba(255,255,255,0.15)',
+              backgroundColor: overdueAmount > 0 ? 'rgba(245,158,11,0.2)' : 'rgba(74,222,128,0.2)',
               borderRadius: 20,
               paddingHorizontal: 12,
               paddingVertical: 6,
             }}
           >
-            <Text style={{ fontSize: 12, color: '#FFFFFF', fontWeight: '500' }}>View Ledger</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: overdueAmount > 0 ? '#FCD34D' : '#4ADE80' }}>
+              {overdueAmount > 0 ? 'Has overdue' : 'All good'}
+            </Text>
           </View>
         </View>
       </View>

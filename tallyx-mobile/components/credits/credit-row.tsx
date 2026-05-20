@@ -1,4 +1,4 @@
-import { TouchableOpacity, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import type { CreditListItem } from '@/features/credits/credit.types';
 import { statusStyles } from '@/utils/credit';
@@ -15,36 +15,48 @@ export function CreditRow({ credit }: { credit: CreditListItem }) {
   }
 
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={handlePress}
-      activeOpacity={0.75}
-      style={{ opacity: isVoided ? 0.5 : 1 }}
+      style={{ opacity: isVoided ? 0.5 : 1, marginBottom: 12 }}
     >
-      <View
-        className="mb-3 rounded-[20px] border border-gray-100 bg-white px-4 py-3.5"
-        style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8 }}
-      >
-        <View className="flex-row items-center justify-between">
-          <View className="flex-1 pr-3">
-            <Text className="text-[15px] font-bold text-gray-900" numberOfLines={1}>
-              {credit.customerName ?? 'Customer'}
-            </Text>
-            <Text className="mt-0.5 text-[12px] text-gray-400">
-              Due {credit.dueDate ? formatDashboardDate(credit.dueDate) : 'No due date'}
-            </Text>
-          </View>
-          <View className="items-end gap-1.5">
-            <View className={`rounded-full px-2.5 py-0.5 ${status.bg}`}>
-              <Text className={`text-[11px] font-bold uppercase tracking-[0.6px] ${status.text}`}>
-                {status.label}
+      {({ pressed }) => (
+        <View
+          style={{
+            backgroundColor: pressed ? '#F9FAFB' : '#FFFFFF',
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: pressed ? '#E5E7EB' : '#F3F4F6',
+            paddingHorizontal: 16,
+            paddingVertical: 14,
+            elevation: 2,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.04,
+            shadowRadius: 8,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }} numberOfLines={1}>
+                {credit.customerName ?? 'Customer'}
+              </Text>
+              <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
+                Due {credit.dueDate ? formatDashboardDate(credit.dueDate) : 'No due date'}
               </Text>
             </View>
-            <Text className="text-[15px] font-bold text-gray-900">
-              {formatPeso(credit.balance)}
-            </Text>
+            <View style={{ alignItems: 'flex-end', gap: 6 }}>
+              <View style={{ backgroundColor: status.bg, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 2 }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, color: status.color }}>
+                  {status.label}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>
+                {formatPeso(credit.balance)}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-    </TouchableOpacity>
+      )}
+    </Pressable>
   );
 }

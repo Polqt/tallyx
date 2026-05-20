@@ -18,6 +18,12 @@ export const payCreditSchema = z.object({
   amount: z.number().int().positive(),
 });
 
+export const updateCreditSchema = z.object({
+  note: z.string().trim().max(280).optional().nullable(),
+  dueDate: z.string().datetime().optional().nullable(),
+});
+
 export type CreateCreditInput = z.infer<typeof createCreditSchema>;
 export type ListCreditsQuery = z.infer<typeof listCreditsQuerySchema>;
 export type PayCreditInput = z.infer<typeof payCreditSchema>;
+export type UpdateCreditInput = z.infer<typeof updateCreditSchema>;

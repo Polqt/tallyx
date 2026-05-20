@@ -1,12 +1,12 @@
 import { Clock3, ShieldCheck, WifiOff } from 'lucide-react-native';
 import type { CreditStatus, CreditSyncStatus } from '@/features/credits/credit.types';
 
-export const statusStyles: Record<CreditStatus, { label: string; bg: string; text: string }> = {
-  pending: { label: 'Pending', bg: 'bg-amber-50', text: 'text-amber-700' },
-  partial: { label: 'Partial', bg: 'bg-blue-50', text: 'text-blue-700' },
-  paid: { label: 'Paid', bg: 'bg-green-50', text: 'text-green-700' },
-  overdue: { label: 'Overdue', bg: 'bg-red-50', text: 'text-red-700' },
-  voided: { label: 'Voided', bg: 'bg-gray-100', text: 'text-gray-500' },
+export const statusStyles: Record<CreditStatus, { label: string; bg: string; color: string }> = {
+  pending: { label: 'Pending', bg: '#FFFBEB', color: '#B45309' },
+  partial: { label: 'Partial', bg: '#EFF6FF', color: '#1D4ED8' },
+  paid:    { label: 'Paid',    bg: '#F0FDF4', color: '#15803D' },
+  overdue: { label: 'Overdue', bg: '#FEF2F2', color: '#B91C1C' },
+  voided:  { label: 'Voided',  bg: '#F3F4F6', color: '#6B7280' },
 };
 
 export const syncStyles: Record<CreditSyncStatus, { label: string; color: string; Icon: typeof Clock3 }> = {

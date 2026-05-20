@@ -4,7 +4,7 @@ import { db } from "../../db/client.js";
 import { credits, customers, payments, stores } from "../../db/schema.js";
 import { AppError } from "../../middleware/errorHandler.js";
 import { recordPaymentOnChain } from "../stellar/stellar.service.js";
-import type { CreateCreditInput, ListCreditsQuery, PayCreditInput } from "./credits.schema.js";
+import type { CreateCreditInput, ListCreditsQuery, PayCreditInput, UpdateCreditInput } from "./credits.schema.js";
 
 type CreditStatus = "pending" | "partial" | "paid" | "overdue" | "voided";
 type SyncStatus = "pending" | "synced" | "failed";
@@ -175,6 +175,72 @@ export async function voidCreditForUser(userId: string, id: string) {
     .returning();
 
   return toCreditResponse(updated);
+}
+
+export async function unvoidCreditForUser(userId: string, id: string) {
+  const storeId = await getStoreIdForUser(userId);
+  const [credit] = await db
+    .select()
+    .from(credits)
+    .where(and(eq(credits.id, id), eq(credits.storeId, storeId)))
+    .limit(1);
+  if (!credit) throw new AppError("Credit not found", 404);
+  if (credit.status !== "voided") throw new AppError("Credit is not voided", 400);
+
+  const [updated] = await db
+    .update(credits)
+    .set({ status: "pending", balance: credit.amount, updatedAt: new Date() })
+    .where(eq(credits.id, id))
+    .returning();
+
+  const customerNames = await getCustomerNames(storeId, [updated.customerId]);
+  return toCreditResponse(updated, customerNames.get(updated.customerId));
+}
+
+export async function updateCreditForUser(userId: string, id: string, input: UpdateCreditInput) {
+  const storeId = await getStoreIdForUser(userId);
+  const [credit] = await db
+    .select()
+    .from(credits)
+    .where(and(eq(credits.id, id), eq(credits.storeId, storeId)))
+    .limit(1);
+  if (!credit) throw new AppError("Credit not found", 404);
+  if (credit.status === "paid") throw new AppError("Cannot edit a fully paid credit", 400);
+  if (credit.status === "voided") throw new AppError("Cannot edit a voided credit", 400);
+
+  const [updated] = await db
+    .update(credits)
+    .set({
+      note: input.note !== undefined ? (input.note?.trim() || null) : credit.note,
+      dueDate: input.dueDate !== undefined ? (input.dueDate ? new Date(input.dueDate) : null) : credit.dueDate,
+      updatedAt: new Date(),
+    })
+    .where(eq(credits.id, id))
+    .returning();
+
+  const customerNames = await getCustomerNames(storeId, [updated.customerId]);
+  return toCreditResponse(updated, customerNames.get(updated.customerId));
+}
+
+export async function deleteCreditForUser(userId: string, id: string) {
+  const storeId = await getStoreIdForUser(userId);
+  const [credit] = await db
+    .select()
+    .from(credits)
+    .where(and(eq(credits.id, id), eq(credits.storeId, storeId)))
+    .limit(1);
+  if (!credit) throw new AppError("Credit not found", 404);
+
+  const [paymentCount] = await db
+    .select({ total: count() })
+    .from(payments)
+    .where(eq(payments.creditId, id));
+  if ((paymentCount?.total ?? 0) > 0) {
+    throw new AppError("Cannot delete a credit that has payments recorded against it", 400);
+  }
+
+  await db.delete(credits).where(eq(credits.id, id));
+  return { id };
 }
 
 export async function payCreditForUser(userId: string, id: string, input: PayCreditInput) {
