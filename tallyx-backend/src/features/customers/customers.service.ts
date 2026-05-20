@@ -1,4 +1,4 @@
-import { and, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, or, sum } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db } from "../../db/client.js";
 import { credits, customers, payments, stores } from "../../db/schema.js";
@@ -157,6 +157,44 @@ export async function getCustomerForUser(userId: string, id: string) {
       stellarTxHash: payment.stellarTxHash,
     })),
   };
+}
+
+export async function deleteCustomerForUser(userId: string, customerId: string) {
+  const storeId = await getStoreIdForUser(userId);
+
+  const [customer] = await db
+    .select()
+    .from(customers)
+    .where(and(eq(customers.id, customerId), eq(customers.storeId, storeId)))
+    .limit(1);
+
+  if (!customer) throw new AppError("Customer not found", 404);
+
+  const [balanceRow] = await db
+    .select({ total: sum(credits.balance) })
+    .from(credits)
+    .where(and(eq(credits.customerId, customerId), eq(credits.storeId, storeId)));
+
+  const outstandingBalance = Number(balanceRow?.total ?? 0);
+  if (outstandingBalance > 0) {
+    throw new AppError("Cannot delete a customer with an outstanding balance. Settle all credits first.", 400);
+  }
+
+  await db.transaction(async (tx) => {
+    const customerCredits = await tx
+      .select({ id: credits.id })
+      .from(credits)
+      .where(and(eq(credits.customerId, customerId), eq(credits.storeId, storeId)));
+
+    const creditIds = customerCredits.map((c) => c.id);
+
+    if (creditIds.length > 0) {
+      await tx.delete(payments).where(inArray(payments.creditId, creditIds));
+      await tx.delete(credits).where(inArray(credits.id, creditIds));
+    }
+
+    await tx.delete(customers).where(eq(customers.id, customerId));
+  });
 }
 
 export async function createCustomerForUser(userId: string, input: CreateCustomerInput) {

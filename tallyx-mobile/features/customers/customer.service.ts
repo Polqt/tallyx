@@ -65,3 +65,7 @@ export function createCustomer(token: string, input: CreateCustomerInput) {
     body: JSON.stringify(input),
   });
 }
+
+export function deleteCustomer(token: string, id: string) {
+  return customerRequest<void>(`/customers/${id}`, token, { method: 'DELETE' });
+}

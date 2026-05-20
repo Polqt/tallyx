@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, ChevronRight, QrCode, ReceiptText, TrendingUp } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, QrCode, ReceiptText, Trash2, TrendingUp } from 'lucide-react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useAuth } from '@/context/AuthContext';
-import { fetchCustomerDetail } from '@/features/customers/customer.service';
+import { deleteCustomer, fetchCustomerDetail } from '@/features/customers/customer.service';
 import type { CustomerDetail } from '@/features/customers/customer.types';
 import { formatDashboardDate, formatPeso } from '@/utils/dashboard';
 import { getCustomerAvatarColor } from '@/utils/customers';
@@ -19,6 +19,7 @@ export default function CustomerDetailScreen() {
   const [customer, setCustomer] = useState<CustomerDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!token || !id) { setLoading(false); return; }
@@ -44,6 +45,42 @@ export default function CustomerDetailScreen() {
   }, [id, token]);
 
   const color = getCustomerAvatarColor(customer?.name ?? 'Customer');
+
+  function handleDelete() {
+    if (!customer || !token) return;
+    if (customer.balance > 0) {
+      Alert.alert(
+        'Cannot delete customer',
+        `${customer.name} still has an outstanding balance of ${formatPeso(customer.balance)}. Settle all credits first.`
+      );
+      return;
+    }
+    Alert.alert(
+      'Delete customer',
+      `Are you sure you want to delete ${customer.name}? This will also remove all their settled credit and payment records. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            haptics.medium();
+            setDeleting(true);
+            try {
+              await deleteCustomer(token, customer.id);
+              haptics.success();
+              router.back();
+            } catch (err) {
+              haptics.error();
+              Alert.alert('Delete failed', err instanceof Error ? err.message : 'Please try again.');
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  }
 
   function openQrScreen() {
     console.log('[CustomerDetailScreen] openQrScreen pressed', { customerId: customer?.id, customerName: customer?.name });
@@ -81,9 +118,22 @@ export default function CustomerDetailScreen() {
           <ChevronLeft size={20} color="#111827" strokeWidth={2.5} />
         </TouchableOpacity>
         <Text className="text-[17px] font-bold text-gray-900">Customer</Text>
-        <TouchableOpacity onPress={openQrScreen} activeOpacity={0.7} className="h-9 w-9 items-center justify-center rounded-full bg-green-50">
-          <QrCode size={18} color="#16A34A" strokeWidth={2} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity onPress={openQrScreen} activeOpacity={0.7} className="h-9 w-9 items-center justify-center rounded-full bg-green-50">
+            <QrCode size={18} color="#16A34A" strokeWidth={2} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleDelete}
+            activeOpacity={0.7}
+            disabled={deleting}
+            style={{ height: 36, width: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, backgroundColor: '#FEF2F2' }}
+          >
+            {deleting
+              ? <ActivityIndicator size="small" color="#DC2626" />
+              : <Trash2 size={17} color="#DC2626" strokeWidth={2} />
+            }
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (

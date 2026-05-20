@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { createCustomerSchema, listCustomersQuerySchema } from "./customers.schema.js";
 import {
   createCustomerForUser,
+  deleteCustomerForUser,
   getCustomerForUser,
   getCustomersForUser,
 } from "./customers.service.js";
@@ -38,6 +39,16 @@ customerRouter.post("/", async (req: Request, res: Response, next: NextFunction)
     const input = createCustomerSchema.parse(req.body);
     const data = await createCustomerForUser(req.user!.id, input);
     res.status(201).json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /customers/:id
+customerRouter.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await deleteCustomerForUser(req.user!.id, req.params.id as string);
+    res.status(204).send();
   } catch (err) {
     next(err);
   }
