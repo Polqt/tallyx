@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "../../db/client.js";
 import { credits, customers, payments, stores } from "../../db/schema.js";
 import { AppError } from "../../middleware/errorHandler.js";
-import { recordPaymentOnChain } from "../stellar/stellar.service.js";
+import { createCreditOnChain, recordPaymentOnChain } from "../stellar/stellar.service.js";
 import type { CreateCreditInput, ListCreditsQuery, PayCreditInput, UpdateCreditInput } from "./credits.schema.js";
 
 type CreditStatus = "pending" | "partial" | "paid" | "overdue" | "voided";
@@ -117,18 +117,42 @@ export async function createCreditForUser(userId: string, input: CreateCreditInp
 
   if (!customer) throw new AppError("Customer not found", 404);
 
+  const creditId = randomUUID();
+  const dueDate = input.dueDate ? new Date(input.dueDate) : null;
+
+  // Submit to Soroban — best-effort; credit is saved regardless
+  let txHash: string | null = null;
+  let onChainCreditId: number | null = null;
+  let syncStatus: SyncStatus = "pending";
+  try {
+    const result = await createCreditOnChain({
+      creditId,
+      customerId: input.customerId,
+      storeId,
+      amount: input.amount,
+      dueDateUnix: dueDate ? Math.floor(dueDate.getTime() / 1000) : undefined,
+    });
+    txHash = result.txHash;
+    onChainCreditId = result.onChainCreditId ?? null;
+    syncStatus = "synced";
+  } catch (err) {
+    console.error("[Stellar] createCreditOnChain failed:", err);
+  }
+
   const [credit] = await db
     .insert(credits)
     .values({
-      id: randomUUID(),
+      id: creditId,
       storeId,
       customerId: input.customerId,
       amount: input.amount.toString(),
       balance: input.amount.toString(),
       status: "pending" satisfies CreditStatus,
-      syncStatus: "pending" satisfies SyncStatus,
+      syncStatus,
       note: input.note?.trim() || null,
-      dueDate: input.dueDate ? new Date(input.dueDate) : null,
+      dueDate,
+      stellarTxHash: txHash,
+      onChainCreditId,
     })
     .returning();
 
@@ -268,11 +292,21 @@ export async function payCreditForUser(userId: string, id: string, input: PayCre
   const newBalance = currentBalance - input.amount;
   const newStatus = (newBalance === 0 ? "paid" : "partial") satisfies CreditStatus;
 
-  // Blockchain sync is metadata for the MVP; recording a payment still succeeds if this is later replaced.
-  const { txHash } = await recordPaymentOnChain({
-    creditId: id,
-    amount: input.amount,
-  });
+  // Submit payment to Soroban — best-effort; DB update happens regardless.
+  let txHash: string | null = null;
+  let syncStatus: SyncStatus = "pending";
+  if (credit.onChainCreditId) {
+    try {
+      const result = await recordPaymentOnChain({
+        onChainCreditId: credit.onChainCreditId,
+        amount: input.amount,
+      });
+      txHash = result.txHash;
+      syncStatus = "synced";
+    } catch (err) {
+      console.error("[Stellar] recordPaymentOnChain failed:", err);
+    }
+  }
 
   const [updated] = await db
     .update(credits)
@@ -280,7 +314,7 @@ export async function payCreditForUser(userId: string, id: string, input: PayCre
       balance: newBalance.toString(),
       status: newStatus,
       stellarTxHash: txHash,
-      syncStatus: txHash ? "synced" : "pending",
+      syncStatus,
       updatedAt: new Date(),
     })
     .where(eq(credits.id, id))

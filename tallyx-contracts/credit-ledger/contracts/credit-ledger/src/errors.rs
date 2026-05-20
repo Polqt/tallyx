@@ -10,4 +10,6 @@ pub enum Error {
     InvalidAmount = 2,
     /// Payment would exceed the remaining balance owed.
     Overpayment = 3,
+    /// USDC transfer failed — customer may not have approved the contract.
+    TransferFailed = 4,
 }

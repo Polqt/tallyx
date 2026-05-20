@@ -3,7 +3,6 @@ import { randomUUID } from "crypto";
 import { db } from "../../db/client.js";
 import { payments, credits, customers, stores } from "../../db/schema.js";
 import { AppError } from "../../middleware/errorHandler.js";
-import { recordPaymentOnChain } from "../stellar/stellar.service.js";
 import type { RecordPaymentInput } from "./payments.schema.js";
 
 async function getStoreIdForUser(userId: string) {
@@ -107,15 +106,9 @@ export async function createPaymentForUser(userId: string, input: RecordPaymentI
   const newBalance = currentBalance - input.amount;
   const newStatus = newBalance === 0 ? "paid" : "partial";
 
-  // 2. Mock or real record on Stellar
-  let txHash = input.stellarTxHash;
-  if (input.paymentMethod === "usdc" && !txHash) {
-    const onChainResult = await recordPaymentOnChain({
-      creditId: input.creditId,
-      amount: input.amount,
-    });
-    txHash = onChainResult.txHash;
-  }
+  // Stellar recording is handled by credits.service.ts#payCreditForUser.
+  // payments.service.ts only handles the DB insert — do not call recordPaymentOnChain here.
+  const txHash = input.stellarTxHash ?? null;
 
   // 3. Insert payment record inside database transaction to guarantee consistency
   return db.transaction(async (tx) => {

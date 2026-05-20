@@ -1,0 +1,1 @@
+ALTER TABLE "credits" ADD COLUMN "on_chain_credit_id" integer;
