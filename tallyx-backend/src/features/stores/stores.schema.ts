@@ -3,7 +3,7 @@ import { z } from "zod";
 export const createStoreSchema = z.object({
   storeName: z.string().min(1).max(100),
   phoneNumber: z.string().max(20).optional(),
-  stellarPublicKey: z.string().optional(),
+  stellarPublicKey: z.string().regex(/^G[A-Z2-7]{55}$/, "Invalid Stellar public key format").optional(),
 });
 
 export const dashboardQuerySchema = z.object({

@@ -8,7 +8,7 @@ import { AppError } from "../../middleware/errorHandler.js";
 import type { RegisterInput, LoginInput } from "./auth.schema.js";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? "7d";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? "24h";
 
 function signToken(userId: string): string {
   return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions);

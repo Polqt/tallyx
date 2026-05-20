@@ -2,6 +2,10 @@ import { Platform } from 'react-native';
 import * as ExpoSecureStore from 'expo-secure-store';
 export type { SecureStoreOptions } from 'expo-secure-store';
 
+// Web fallback uses localStorage because expo-secure-store has no web implementation.
+// This is intentional: Tallyx targets iOS/Android only. The web path exists solely
+// for local development convenience (Expo Go web preview) and is never shipped to users.
+// Do not use this app in a browser in production — tokens are not XSS-protected there.
 export const SecureStore = {
   async getItemAsync(key: string): Promise<string | null> {
     if (Platform.OS === 'web') {

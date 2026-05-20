@@ -34,11 +34,15 @@ export interface StellarResult {
 function getConfig() {
   const secretKey = process.env.STELLAR_SECRET_KEY;
   const contractId = process.env.CREDIT_CONTRACT_ID;
-  const rpcUrl = process.env.STELLAR_RPC_URL ?? "https://soroban-testnet.stellar.org";
-  const network = process.env.STELLAR_NETWORK ?? "testnet";
+  const rpcUrl = process.env.STELLAR_RPC_URL;
+  const network = process.env.STELLAR_NETWORK;
 
   if (!secretKey) throw new AppError("STELLAR_SECRET_KEY is not configured", 500);
   if (!contractId) throw new AppError("CREDIT_CONTRACT_ID is not configured", 500);
+  if (!rpcUrl) throw new AppError("STELLAR_RPC_URL is not configured", 500);
+  if (network !== "testnet" && network !== "mainnet") {
+    throw new AppError("STELLAR_NETWORK must be 'testnet' or 'mainnet'", 500);
+  }
 
   const networkPassphrase =
     network === "mainnet" ? Networks.PUBLIC : Networks.TESTNET;

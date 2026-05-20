@@ -90,7 +90,12 @@ export default function Payments() {
     ? payments.filter((p) => p.customer.id === customerId)
     : payments;
 
-  const totalCollections = visiblePayments.reduce((sum, item) => sum + Number(item.amount), 0);
+  const totalCash = visiblePayments
+    .filter((p) => p.paymentMethod === 'cash')
+    .reduce((sum, p) => sum + Number(p.amount), 0);
+  const totalUsdc = visiblePayments
+    .filter((p) => p.paymentMethod === 'usdc')
+    .reduce((sum, p) => sum + Number(p.amount), 0);
 
   // Pulse FAB when no payments
   useEffect(() => {
@@ -130,21 +135,26 @@ export default function Payments() {
           </View>
 
           <View style={{ alignItems: 'center' }}>
-            <Text 
+            <Text
               style={{
-                fontFamily: 'Geist_500Medium', 
-                fontSize: 11, 
+                fontFamily: 'Geist_500Medium',
+                fontSize: 11,
                 color: 'rgba(255,255,255,0.55)',
-                letterSpacing: 1.4, 
-                textTransform: 'uppercase', 
+                letterSpacing: 1.4,
+                textTransform: 'uppercase',
                 marginBottom: 8,
               }}
             >
-              Total Collections
+              Cash Collections
             </Text>
             <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 44, color: '#FFFFFF', lineHeight: 52 }}>
-              {formatPeso(totalCollections)}
+              {formatPeso(totalCash)}
             </Text>
+            {totalUsdc > 0 && (
+              <Text style={{ fontFamily: 'Geist_500Medium', fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
+                + {totalUsdc.toLocaleString()} USDC
+              </Text>
+            )}
             <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 8 }}>
               {visiblePayments.length} successful payment{visiblePayments.length !== 1 ? 's' : ''} logged
             {customerId ? ' · filtered by customer' : ''}

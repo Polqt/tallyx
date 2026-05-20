@@ -4,37 +4,7 @@ import type {
   CreditListResponse,
   FetchCreditsParams,
 } from './credit.types';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
-
-async function readJson(response: Response) {
-  const text = await response.text();
-  if (!text) return {};
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return {};
-  }
-}
-
-async function creditRequest<T>(path: string, token: string, options: RequestInit = {}) {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options.headers,
-    },
-  });
-  const data = await readJson(response);
-
-  if (!response.ok) {
-    throw new Error(data.error ?? data.message ?? 'Credit request failed.');
-  }
-
-  return data as T;
-}
+import { apiRequest } from '@/utils/api-client';
 
 function buildCreditListPath(params: FetchCreditsParams) {
   const searchParams = new URLSearchParams({
@@ -48,37 +18,37 @@ function buildCreditListPath(params: FetchCreditsParams) {
 }
 
 export function fetchCredits(token: string, params: FetchCreditsParams = {}) {
-  return creditRequest<CreditListResponse>(buildCreditListPath(params), token, {
+  return apiRequest<CreditListResponse>(buildCreditListPath(params), token, {
     signal: params.signal,
   });
 }
 
 export function fetchCredit(token: string, id: string, signal?: AbortSignal) {
-  return creditRequest<CreditListItem>(`/credits/${encodeURIComponent(id)}`, token, { signal });
+  return apiRequest<CreditListItem>(`/credits/${encodeURIComponent(id)}`, token, { signal });
 }
 
 export function createCredit(token: string, input: CreateCreditInput) {
-  return creditRequest<CreditListItem>('/credits', token, {
+  return apiRequest<CreditListItem>('/credits', token, {
     method: 'POST',
     body: JSON.stringify(input),
   });
 }
 
 export function voidCredit(token: string, id: string) {
-  return creditRequest<CreditListItem>(`/credits/${encodeURIComponent(id)}/void`, token, { method: 'PATCH' });
+  return apiRequest<CreditListItem>(`/credits/${encodeURIComponent(id)}/void`, token, { method: 'PATCH' });
 }
 
 export function unvoidCredit(token: string, id: string) {
-  return creditRequest<CreditListItem>(`/credits/${encodeURIComponent(id)}/unvoid`, token, { method: 'PATCH' });
+  return apiRequest<CreditListItem>(`/credits/${encodeURIComponent(id)}/unvoid`, token, { method: 'PATCH' });
 }
 
 export function updateCredit(token: string, id: string, input: { note?: string | null; dueDate?: string | null }) {
-  return creditRequest<CreditListItem>(`/credits/${encodeURIComponent(id)}`, token, {
+  return apiRequest<CreditListItem>(`/credits/${encodeURIComponent(id)}`, token, {
     method: 'PATCH',
     body: JSON.stringify(input),
   });
 }
 
 export function deleteCredit(token: string, id: string) {
-  return creditRequest<{ id: string }>(`/credits/${encodeURIComponent(id)}`, token, { method: 'DELETE' });
+  return apiRequest<{ id: string }>(`/credits/${encodeURIComponent(id)}`, token, { method: 'DELETE' });
 }
