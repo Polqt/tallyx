@@ -14,23 +14,21 @@ pub enum CreditStatus {
 #[derive(Clone, Debug)]
 pub struct CreditEntry {
     pub credit_id: u64,
-    /// The sari-sari store or lender that extended the credit.
+    /// The sari-sari store that extended the credit.
     pub store_id: String,
     /// The Stellar address of the store owner who created this credit.
     pub store_owner: Address,
-    /// The customer's Stellar address (used for USDC transfers on payment).
-    pub customer_address: Address,
     /// The customer who owes the amount (off-chain DB ID, for indexing).
     pub customer_id: String,
-    /// Original amount owed, in stroops (1 XLM = 10_000_000 stroops).
+    /// Original amount owed (in PHP centavos or agreed unit).
     pub amount: i128,
     /// How much has been paid back so far.
     pub amount_paid: i128,
     /// Unix timestamp (seconds) when this credit is due.
     pub due_date: u64,
     pub status: CreditStatus,
-    /// The USDC token contract address used for payment settlement.
-    pub usdc_token: Address,
+    // TODO: add customer_address: Address for USDC settlement in future version
+    // TODO: add usdc_token: Address for USDC settlement in future version
 }
 
 /// Storage key enum — each variant maps to a distinct slot in contract storage.
