@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{testutils::{Address as _, Events}, Address, Env, String};
+use soroban_sdk::{testutils::{Address as _, Events}, vec, Address, Env, IntoVal, Map, String, Symbol, Val, Vec};
 
 fn setup(env: &Env) -> CreditLedgerClient<'_> {
     let contract_id = env.register(CreditLedger, ());
@@ -101,8 +101,26 @@ fn test_events_emitted_on_create() {
     let client = setup(&env);
     let owner = Address::generate(&env);
 
-    make_credit(&client, &env, &owner, "cust-007", 500_000);
-    assert!(!env.events().all().events().is_empty());
+    let credit_id = make_credit(&client, &env, &owner, "cust-007", 500_000);
+
+    // #[contractevent] encodes data as a Map<Symbol, Val> sorted by key (alphabetical)
+    // topic is struct name as snake_case Symbol
+    let data: Map<Symbol, Val> = Map::from_array(&env, [
+        (Symbol::new(&env, "amount"),      500_000_i128.into_val(&env)),
+        (Symbol::new(&env, "credit_id"),   credit_id.into_val(&env)),
+        (Symbol::new(&env, "customer_id"), s(&env, "cust-007").into_val(&env)),
+        (Symbol::new(&env, "due_date"),    9999_u64.into_val(&env)),
+        (Symbol::new(&env, "store_id"),    s(&env, "store-001").into_val(&env)),
+    ]);
+
+    let expected: Vec<(Address, Vec<Val>, Val)> = vec![&env,
+        (
+            client.address.clone(),
+            vec![&env, Symbol::new(&env, "credit_created").into_val(&env)],
+            data.into_val(&env),
+        )
+    ];
+    assert_eq!(env.events().all(), expected);
 }
 
 #[test]
@@ -205,10 +223,25 @@ fn test_events_emitted_on_payment() {
     let client = setup(&env);
     let owner = Address::generate(&env);
 
-    let id = make_credit(&client, &env, &owner, "cust-007", 500_000);
-    client.record_payment(&id, &500_000);
+    let credit_id = make_credit(&client, &env, &owner, "cust-007", 500_000);
+    client.record_payment(&credit_id, &500_000);
 
-    assert!(!env.events().all().events().is_empty());
+    let payment_data: Map<Symbol, Val> = Map::from_array(&env, [
+        (Symbol::new(&env, "amount"),      500_000_i128.into_val(&env)),
+        (Symbol::new(&env, "credit_id"),   credit_id.into_val(&env)),
+        (Symbol::new(&env, "customer_id"), s(&env, "cust-007").into_val(&env)),
+        (Symbol::new(&env, "fully_paid"),  true.into_val(&env)),
+    ]);
+
+    // Soroban test env only retains events from the most recent contract call
+    let expected: Vec<(Address, Vec<Val>, Val)> = vec![&env,
+        (
+            client.address.clone(),
+            vec![&env, Symbol::new(&env, "payment_recorded").into_val(&env)],
+            payment_data.into_val(&env),
+        ),
+    ];
+    assert_eq!(env.events().all(), expected);
 }
 
 #[test]

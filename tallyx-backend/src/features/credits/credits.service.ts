@@ -122,7 +122,7 @@ export async function createCreditForUser(userId: string, input: CreateCreditInp
 
   // Submit to Soroban — best-effort; credit is saved regardless
   let txHash: string | null = null;
-  let onChainCreditId: number | null = null;
+  let onChainCreditId: bigint | null = null;
   let syncStatus: SyncStatus = "pending";
   try {
     const result = await createCreditOnChain({

@@ -9,6 +9,6 @@ export const createCreditOnChainSchema = z.object({
 });
 
 export const recordPaymentOnChainSchema = z.object({
-  onChainCreditId: z.number().int().positive(),
+  onChainCreditId: z.coerce.bigint().positive(),
   amount: z.number().int().positive(),
 });

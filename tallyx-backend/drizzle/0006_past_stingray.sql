@@ -1,0 +1,1 @@
+ALTER TABLE "credits" ALTER COLUMN "on_chain_credit_id" SET DATA TYPE bigint;

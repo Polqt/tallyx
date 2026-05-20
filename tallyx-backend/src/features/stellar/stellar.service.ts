@@ -22,13 +22,13 @@ export interface CreateCreditOnChainInput {
 }
 
 export interface RecordPaymentOnChainInput {
-  onChainCreditId: number;
+  onChainCreditId: bigint;
   amount: number;
 }
 
 export interface StellarResult {
   txHash: string;
-  onChainCreditId?: number;
+  onChainCreditId?: bigint;
 }
 
 function getConfig() {
@@ -121,8 +121,8 @@ export async function createCreditOnChain(
 
   const { txHash, returnValue } = await submitContractCall("create_credit", args);
 
-  // Contract returns the new credit_id as u64
-  const onChainCreditId = Number(returnValue.u64());
+  // Contract returns the new credit_id as u64 — convert to BigInt to avoid Number precision loss
+  const onChainCreditId = returnValue.u64().toBigInt();
 
   return { txHash, onChainCreditId };
 }
@@ -138,7 +138,7 @@ export async function recordPaymentOnChain(
   input: RecordPaymentOnChainInput,
 ): Promise<StellarResult> {
   const args: xdr.ScVal[] = [
-    nativeToScVal(BigInt(input.onChainCreditId), { type: "u64" }),
+    nativeToScVal(input.onChainCreditId, { type: "u64" }),
     nativeToScVal(BigInt(input.amount), { type: "i128" }),
   ];
 
