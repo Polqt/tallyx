@@ -53,6 +53,10 @@ export function fetchCredits(token: string, params: FetchCreditsParams = {}) {
   });
 }
 
+export function fetchCredit(token: string, id: string, signal?: AbortSignal) {
+  return creditRequest<CreditListItem>(`/credits/${id}`, token, { signal });
+}
+
 export function createCredit(token: string, input: CreateCreditInput) {
   return creditRequest<CreditListItem>('/credits', token, {
     method: 'POST',

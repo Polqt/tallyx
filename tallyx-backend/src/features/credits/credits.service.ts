@@ -135,6 +135,20 @@ export async function createCreditForUser(userId: string, input: CreateCreditInp
   return toCreditResponse(credit, customer.name);
 }
 
+export async function getCreditForUser(userId: string, id: string) {
+  const storeId = await getStoreIdForUser(userId);
+  const [credit] = await db
+    .select()
+    .from(credits)
+    .where(and(eq(credits.id, id), eq(credits.storeId, storeId)))
+    .limit(1);
+
+  if (!credit) throw new AppError("Credit not found", 404);
+
+  const customerNames = await getCustomerNames(storeId, [credit.customerId]);
+  return toCreditResponse(credit, customerNames.get(credit.customerId));
+}
+
 export async function voidCreditForUser(userId: string, id: string) {
   const storeId = await getStoreIdForUser(userId);
   const [credit] = await db

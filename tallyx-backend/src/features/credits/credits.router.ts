@@ -3,6 +3,7 @@ import { authenticate } from "../../middleware/authenticate.js";
 import { createCreditSchema, listCreditsQuerySchema, payCreditSchema } from "./credits.schema.js";
 import {
   createCreditForUser,
+  getCreditForUser,
   getCreditsForUser,
   payCreditForUser,
   voidCreditForUser,
@@ -17,6 +18,16 @@ creditRouter.get("/", async (req: Request, res: Response, next: NextFunction) =>
   try {
     const query = listCreditsQuerySchema.parse(req.query);
     const data = await getCreditsForUser(req.user!.id, query);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /credits/:id
+creditRouter.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await getCreditForUser(req.user!.id, req.params.id as string);
     res.json(data);
   } catch (err) {
     next(err);

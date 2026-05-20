@@ -9,7 +9,7 @@ import { AddCreditSheet } from '@/components/credits/add-credit-sheet';
 import { CreditRow } from '@/components/credits/credit-row';
 import { useAuth } from '@/context/AuthContext';
 import { useNavVisibility } from '@/context/NavVisibilityContext';
-import { createCredit, fetchCredits, voidCredit } from '@/features/credits/credit.service';
+import { createCredit, fetchCredits } from '@/features/credits/credit.service';
 import type { CreditListItem, CreditStatus } from '@/features/credits/credit.types';
 import { parseDueDate, parsePesoAmount } from '@/utils/credit';
 import { formatPeso } from '@/utils/dashboard';
@@ -179,36 +179,6 @@ export default function Credits() {
     loadCredits(page + 1, true);
   }, [hasMore, loadCredits, loading, loadingMore, page]);
 
-  const handleVoid = useCallback((credit: CreditListItem) => {
-    if (!token) return;
-    if (credit.status === 'voided') return;
-    if (credit.status === 'paid') {
-      Alert.alert('Cannot void', 'This credit has already been fully paid.');
-      return;
-    }
-    haptics.medium();
-    Alert.alert(
-      'Void credit?',
-      `This will cancel the ₱${credit.amount.toLocaleString()} credit for ${credit.customerName ?? 'this customer'}. This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Void',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await voidCredit(token, credit.id);
-              haptics.success();
-              loadCredits(1);
-            } catch (error) {
-              haptics.error();
-              Alert.alert('Could not void credit', error instanceof Error ? error.message : 'Please try again.');
-            }
-          },
-        },
-      ]
-    );
-  }, [loadCredits, token]);
 
   const renderHeader = useCallback(() => (
     <View className="gap-4 pb-4">
@@ -317,7 +287,7 @@ export default function Credits() {
         <FlatList
           data={credits}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <CreditRow credit={item} onLongPress={() => handleVoid(item)} />}
+          renderItem={({ item }) => <CreditRow credit={item} />}
           ListHeaderComponent={renderHeader}
           ListFooterComponent={renderFooter}
           ListEmptyComponent={

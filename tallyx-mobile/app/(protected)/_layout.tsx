@@ -19,7 +19,8 @@ export default function ProtectedLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="customers/[id]" options={{ headerShown: true, title: 'Customer Detail' }} />
+      <Stack.Screen name="customers/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="credits/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="credits/new" options={{ headerShown: true, title: 'New Credit', presentation: 'modal' }} />
       <Stack.Screen name="payments/new" options={{ headerShown: true, title: 'Record Payment', presentation: 'modal' }} />
       <Stack.Screen name="settings/guide" options={{ headerShown: false }} />
