@@ -11,7 +11,7 @@ export const users = pgTable("users", {
 
 export const stores = pgTable("stores", {
   id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
   storeName: text("store_name").notNull(),
   phoneNumber: text("phone_number"),
   stellarPublicKey: text("stellar_public_key"),
@@ -23,7 +23,7 @@ export const stores = pgTable("stores", {
 
 export const customers = pgTable("customers", {
   id: text("id").primaryKey(),
-  storeId: text("store_id").notNull().references(() => stores.id),
+  storeId: text("store_id").notNull().references(() => stores.id, { onDelete: "restrict" }),
   name: text("name").notNull(),
   phone: text("phone"),
   email: text("email"),
@@ -35,8 +35,8 @@ export const customers = pgTable("customers", {
 
 export const credits = pgTable("credits", {
   id: text("id").primaryKey(),
-  customerId: text("customer_id").notNull().references(() => customers.id),
-  storeId: text("store_id").notNull().references(() => stores.id),
+  customerId: text("customer_id").notNull().references(() => customers.id, { onDelete: "restrict" }),
+  storeId: text("store_id").notNull().references(() => stores.id, { onDelete: "restrict" }),
   amount: text("amount").notNull(),
   balance: text("balance").notNull(),
   status: text("status").notNull().default("pending"),
@@ -55,7 +55,7 @@ export const credits = pgTable("credits", {
 
 export const payments = pgTable("payments", {
   id: text("id").primaryKey(),
-  creditId: text("credit_id").notNull().references(() => credits.id),
+  creditId: text("credit_id").notNull().references(() => credits.id, { onDelete: "restrict" }),
   idempotencyKey: text("idempotency_key").unique(),
   amount: text("amount").notNull(),
   paymentMethod: text("payment_method").notNull().default("cash"),

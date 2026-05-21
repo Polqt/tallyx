@@ -214,9 +214,10 @@ export async function createPaymentForUser(userId: string, input: RecordPaymentI
   });
   } catch (err: unknown) {
     // If two identical idempotency keys raced past the in-transaction check,
-    // the DB UNIQUE constraint fires. Return the existing payment instead of 500.
-    const msg = err instanceof Error ? err.message : '';
-    if (input.idempotencyKey && msg.includes('payments_idempotency_key_unique')) {
+    // the DB UNIQUE constraint fires (Postgres error code 23505).
+    // Return the existing payment instead of a 500.
+    const isUniqueViolation = typeof err === 'object' && err !== null && (err as Record<string, unknown>).code === '23505';
+    if (input.idempotencyKey && isUniqueViolation) {
       const [existing] = await db
         .select()
         .from(payments)

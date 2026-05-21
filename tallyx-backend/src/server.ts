@@ -9,7 +9,7 @@ import { paymentRouter } from "./features/payments/payments.router.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { apiLimiter, authLimiter } from "./middleware/rateLimiters.js";
 import { requestId } from "./middleware/requestId.js";
-import { db } from "./db/client.js";
+import { db, pool } from "./db/client.js";
 import { stores } from "./db/schema.js";
 import { AppError } from "./middleware/errorHandler.js";
 
@@ -65,7 +65,8 @@ const server = app.listen(PORT, () => {
 });
 
 function shutdown() {
-  server.close(() => {
+  server.close(async () => {
+    await pool.end();
     process.exit(0);
   });
 }

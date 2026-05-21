@@ -235,24 +235,29 @@ export async function unvoidCreditForUser(userId: string, id: string) {
 
 export async function updateCreditForUser(userId: string, id: string, input: UpdateCreditInput) {
   const storeId = await getStoreIdForUser(userId);
-  const [credit] = await db
-    .select()
-    .from(credits)
-    .where(and(eq(credits.id, id), eq(credits.storeId, storeId)))
-    .limit(1);
-  if (!credit) throw new AppError("Credit not found", 404);
-  if (credit.status === "paid") throw new AppError("Cannot edit a fully paid credit", 400);
-  if (credit.status === "voided") throw new AppError("Cannot edit a voided credit", 400);
 
-  const [updated] = await db
-    .update(credits)
-    .set({
-      note: input.note !== undefined ? (input.note?.trim() || null) : credit.note,
-      dueDate: input.dueDate !== undefined ? (input.dueDate ? new Date(input.dueDate) : null) : credit.dueDate,
-      updatedAt: new Date(),
-    })
-    .where(eq(credits.id, id))
-    .returning();
+  const [updated] = await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT id FROM credits WHERE id = ${id} FOR UPDATE`);
+
+    const [credit] = await tx
+      .select()
+      .from(credits)
+      .where(and(eq(credits.id, id), eq(credits.storeId, storeId)))
+      .limit(1);
+    if (!credit) throw new AppError("Credit not found", 404);
+    if (credit.status === "paid") throw new AppError("Cannot edit a fully paid credit", 400);
+    if (credit.status === "voided") throw new AppError("Cannot edit a voided credit", 400);
+
+    return tx
+      .update(credits)
+      .set({
+        note: input.note !== undefined ? (input.note?.trim() || null) : credit.note,
+        dueDate: input.dueDate !== undefined ? (input.dueDate ? new Date(input.dueDate) : null) : credit.dueDate,
+        updatedAt: new Date(),
+      })
+      .where(eq(credits.id, id))
+      .returning();
+  });
 
   const customerNames = await getCustomerNames(storeId, [updated.customerId]);
   return toCreditResponse(updated, customerNames.get(updated.customerId));
