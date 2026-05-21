@@ -46,7 +46,7 @@ export function OfflineBanner({ isOnline }: Props) {
             color: '#FDE68A',
           }}
         >
-          You're offline · Showing cached data
+          You&apos;re offline · Showing cached data
         </Text>
       </View>
     </Animated.View>

@@ -7,7 +7,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '@/context/AuthContext';
 import { deleteCredit, fetchCredit, unvoidCredit, updateCredit, voidCredit } from '@/features/credits/credit.service';
 import type { CreditListItem } from '@/features/credits/credit.types';
-import { openTransactionExplorer, truncateStellarAddress } from '@/features/stellar/stellar.service';
+import { openTransactionExplorer } from '@/features/stellar/stellar.service';
 import { statusStyles } from '@/utils/credit';
 import { compactKey, formatDashboardDate, formatPeso } from '@/utils/dashboard';
 import { haptics } from '@/utils/haptics';
