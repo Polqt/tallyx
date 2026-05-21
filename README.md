@@ -138,7 +138,8 @@ tallyx-mobile         (Expo React Native)
 | Name | Role | GitHub |
 |---|---|---|
 | Jepoy | Full-stack + Blockchain | @Polqt |
+| Carlos Valderrama | Contributor | @ascxiao |
 
 ## 📜 License
 
-MIT
+MIT — see [LICENSE](LICENSE) for details.
