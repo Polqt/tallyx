@@ -151,6 +151,15 @@ export default function Credits() {
       Alert.alert('Check due date', 'Use YYYY-MM-DD format, for example 2026-05-30.');
       return;
     }
+    if (parsedDueDateValue) {
+      const due = new Date(parsedDueDateValue);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (due < today) {
+        Alert.alert('Check due date', 'Due date must be today or in the future.');
+        return;
+      }
+    }
 
     haptics.medium();
     setSaving(true);
