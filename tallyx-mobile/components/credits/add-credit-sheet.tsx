@@ -47,7 +47,7 @@ export const AddCreditSheet = forwardRef<BottomSheet, Props>(
 
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />
+        <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} pressBehavior="close" />
       ),
       []
     );
@@ -65,7 +65,7 @@ export const AddCreditSheet = forwardRef<BottomSheet, Props>(
         animationConfigs={{ duration: 500, dampingRatio: 0.8 }}
         onClose={onClose}
         handleIndicatorStyle={{ backgroundColor: '#D1D5DB', width: 40 }}
-        backgroundStyle={{ borderTopLeftRadius: 28, borderTopRightRadius: 28 }}
+        backgroundStyle={{ backgroundColor: '#FFFFFF' }}
       >
         <BottomSheetScrollView
           keyboardShouldPersistTaps="handled"
