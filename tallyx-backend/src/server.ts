@@ -6,7 +6,6 @@ import { storesRouter } from "./features/stores/stores.router.js";
 import { customerRouter } from "./features/customers/customers.router.js";
 import { creditRouter } from "./features/credits/credits.router.js";
 import { paymentRouter } from "./features/payments/payments.router.js";
-import { stellarRouter } from "./features/stellar/stellar.router.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { apiLimiter, authLimiter } from "./middleware/rateLimiters.js";
 import { requestId } from "./middleware/requestId.js";
@@ -29,7 +28,6 @@ app.use("/stores", apiLimiter, storesRouter);
 app.use("/customers", apiLimiter, customerRouter);
 app.use("/credits", apiLimiter, creditRouter);
 app.use("/payments", apiLimiter, paymentRouter);
-app.use("/stellar", apiLimiter, stellarRouter);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
@@ -38,6 +36,21 @@ app.get("/health", (_req, res) => {
 
 // Error handler must be last
 app.use(errorHandler);
+
+const REQUIRED_ENV = [
+  "JWT_SECRET",
+  "DATABASE_URL",
+  "STELLAR_SECRET_KEY",
+  "CREDIT_CONTRACT_ID",
+  "STELLAR_RPC_URL",
+  "STELLAR_NETWORK",
+] as const;
+
+const missingEnv = REQUIRED_ENV.filter((key) => !process.env[key]);
+if (missingEnv.length > 0) {
+  console.error(`Missing required environment variables: ${missingEnv.join(", ")}`);
+  process.exit(1);
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

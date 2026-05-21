@@ -7,7 +7,7 @@ import { users, stores } from "../../db/schema.js";
 import { AppError } from "../../middleware/errorHandler.js";
 import type { RegisterInput, LoginInput } from "./auth.schema.js";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = process.env.JWT_SECRET as string;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? "24h";
 
 function signToken(userId: string): string {
