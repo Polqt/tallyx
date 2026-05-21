@@ -15,11 +15,13 @@ import type { CreditListItem, CreditStatus } from '@/features/credits/credit.typ
 import { parseDueDate, parsePesoAmount } from '@/utils/credit';
 import { formatPeso } from '@/utils/dashboard';
 import { haptics } from '@/utils/haptics';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 export default function Credits() {
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const { hideNav, showNav } = useNavVisibility();
+  const { isOnline } = useNetworkStatus();
   const { customerId } = useLocalSearchParams<{ customerId?: string }>();
 
   const [credits, setCredits] = useState<CreditListItem[]>([]);
@@ -330,6 +332,7 @@ export default function Credits() {
         dueDate={dueDate}
         note={note}
         saving={saving}
+        isOnline={isOnline}
         onSelectCustomer={setSelectedCustomerId}
         onAmountChange={setAmount}
         onDueDateChange={setDueDate}

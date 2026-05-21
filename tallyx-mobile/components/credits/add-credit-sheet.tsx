@@ -18,6 +18,7 @@ type Props = {
   dueDate: string;
   note: string;
   saving: boolean;
+  isOnline: boolean;
   onSelectCustomer: (id: string) => void;
   onAmountChange: (v: string) => void;
   onDueDateChange: (v: string) => void;
@@ -34,6 +35,7 @@ export const AddCreditSheet = forwardRef<BottomSheet, Props>(
     dueDate,
     note,
     saving,
+    isOnline,
     onSelectCustomer,
     onAmountChange,
     onDueDateChange,
@@ -43,7 +45,7 @@ export const AddCreditSheet = forwardRef<BottomSheet, Props>(
   }, ref) => {
     const insets = useSafeAreaInsets();
     const parsedAmount = parsePesoAmount(amount);
-    const canSubmit = Boolean(selectedCustomerId) && parsedAmount > 0 && !saving;
+    const canSubmit = Boolean(selectedCustomerId) && parsedAmount > 0 && !saving && isOnline;
 
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
@@ -113,6 +115,11 @@ export const AddCreditSheet = forwardRef<BottomSheet, Props>(
           <View style={{ flexGrow: 1 }} />
 
           {/* Submit button */}
+          {!isOnline && (
+            <Text style={{ fontSize: 12, color: '#D97706', textAlign: 'center', marginBottom: 8, fontFamily: 'Geist_400Regular' }}>
+              You're offline. Connect to record a credit.
+            </Text>
+          )}
           <TouchableOpacity
             onPress={onSubmit}
             activeOpacity={0.85}
