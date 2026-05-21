@@ -21,6 +21,7 @@ import { PaymentSearchBar } from '@/components/payments/payment-search-bar';
 import { RecordPaymentSheet } from '@/components/payments/record-payment-sheet';
 import { formatPeso } from '@/utils/dashboard';
 import { haptics } from '@/utils/haptics';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 type MethodFilter = 'all' | 'cash' | 'usdc';
 
@@ -28,6 +29,7 @@ export default function Payments() {
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const { hideNav, showNav } = useNavVisibility();
+  const { isOnline } = useNetworkStatus();
   const navigation = useNavigation();
   const { customerId } = useLocalSearchParams<{ customerId?: string }>();
 
@@ -254,6 +256,7 @@ export default function Payments() {
         ref={sheetRef}
         onClose={handleSheetClose}
         onSuccess={() => loadPayments(false)}
+        isOnline={isOnline}
       />
     </View>
   );

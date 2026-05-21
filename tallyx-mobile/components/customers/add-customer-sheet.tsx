@@ -11,6 +11,7 @@ type AddCustomerSheetProps = {
   name: string;
   phone: string;
   creating: boolean;
+  isOnline: boolean;
   onNameChange: (value: string) => void;
   onPhoneChange: (value: string) => void;
   onSubmit: () => void;
@@ -19,11 +20,11 @@ type AddCustomerSheetProps = {
 
 export const AddCustomerSheet = forwardRef<BottomSheet, AddCustomerSheetProps>(
   function AddCustomerSheet(
-    { name, phone, creating, onNameChange, onPhoneChange, onSubmit, onClose },
+    { name, phone, creating, isOnline, onNameChange, onPhoneChange, onSubmit, onClose },
     ref
   ) {
     const insets = useSafeAreaInsets();
-    const canSubmit = Boolean(name.trim()) && !creating;
+    const canSubmit = Boolean(name.trim()) && !creating && isOnline;
 
     const handleChange = useCallback(
       (index: number) => {
@@ -66,6 +67,11 @@ export const AddCustomerSheet = forwardRef<BottomSheet, AddCustomerSheetProps>(
 
           {/* Button pinned to bottom */}
           <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+            {!isOnline && (
+              <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 12, color: '#D97706', textAlign: 'center', marginBottom: 8 }}>
+                You're offline. Connect to create a customer.
+              </Text>
+            )}
             <TouchableOpacity
               onPress={onSubmit}
               activeOpacity={0.85}

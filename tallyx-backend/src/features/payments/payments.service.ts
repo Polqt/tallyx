@@ -165,8 +165,8 @@ export async function createPaymentForUser(userId: string, input: RecordPaymentI
       throw new AppError("Payment exceeds remaining balance", 400);
     }
 
-    const newBalance = currentBalance - input.amount;
-    const newStatus = newBalance === 0 ? "paid" : "partial";
+    const newBalance = Math.round((currentBalance - input.amount) * 100) / 100;
+    const newStatus = newBalance <= 0 ? "paid" : "partial";
 
     // Best-effort Soroban sync — DB write succeeds regardless.
     // Only attempted if this credit was originally synced to the chain.

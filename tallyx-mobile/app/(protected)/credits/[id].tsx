@@ -9,7 +9,7 @@ import { deleteCredit, fetchCredit, unvoidCredit, updateCredit, voidCredit } fro
 import type { CreditListItem } from '@/features/credits/credit.types';
 import { openTransactionExplorer, truncateStellarAddress } from '@/features/stellar/stellar.service';
 import { statusStyles } from '@/utils/credit';
-import { formatDashboardDate, formatPeso } from '@/utils/dashboard';
+import { compactKey, formatDashboardDate, formatPeso } from '@/utils/dashboard';
 import { haptics } from '@/utils/haptics';
 
 const syncConfig = {
@@ -321,7 +321,7 @@ export default function CreditDetailScreen() {
                   style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 6 }}
                 >
                   <Text style={{ fontSize: 12, color: '#2563EB', fontWeight: '600' }}>
-                    {truncateStellarAddress(credit.stellarTxHash)}
+                    {compactKey(credit.stellarTxHash)}
                   </Text>
                   <Text style={{ fontSize: 11, color: '#2563EB' }}>↗</Text>
                 </TouchableOpacity>

@@ -25,4 +25,5 @@ export interface RecordPaymentInput {
   amount: number;
   paymentMethod: 'cash' | 'usdc';
   stellarTxHash?: string;
+  idempotencyKey?: string;
 }

@@ -10,6 +10,7 @@ import { CustomerEmptyState } from '@/components/customers/customer-empty-state'
 import { CustomerListRow } from '@/components/customers/customer-list-row';
 import { CustomerSearchBar } from '@/components/customers/customer-search-bar';
 import { useAuth } from '@/context/AuthContext';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useNavVisibility } from '@/context/NavVisibilityContext';
 import { createCustomer, fetchCustomers } from '@/features/customers/customer.service';
 import type { CustomerListItem } from '@/features/customers/customer.types';
@@ -19,6 +20,7 @@ import { haptics } from '@/utils/haptics';
 export default function Customers() {
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
+  const { isOnline } = useNetworkStatus();
   const { hideNav, showNav } = useNavVisibility();
   const [customers, setCustomers] = useState<CustomerListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -333,6 +335,7 @@ export default function Customers() {
         name={newName}
         phone={newPhone}
         creating={creating}
+        isOnline={isOnline}
         onNameChange={setNewName}
         onPhoneChange={setNewPhone}
         onSubmit={handleCreate}

@@ -5,7 +5,13 @@ export const createCreditSchema = z.object({
   amount: z.number().int().positive().max(100_000_000),
   dueDate: z.string().datetime().optional(),
   note: z.string().trim().max(280).optional(),
-});
+}).refine(
+  (v) => {
+    if (!v.dueDate) return true;
+    return new Date(v.dueDate) > new Date();
+  },
+  { message: "Due date must be in the future", path: ["dueDate"] }
+);
 
 export const listCreditsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

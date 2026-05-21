@@ -15,11 +15,13 @@ import type { CreditListItem, CreditStatus } from '@/features/credits/credit.typ
 import { parseDueDate, parsePesoAmount } from '@/utils/credit';
 import { formatPeso } from '@/utils/dashboard';
 import { haptics } from '@/utils/haptics';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 export default function Credits() {
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const { hideNav, showNav } = useNavVisibility();
+  const { isOnline } = useNetworkStatus();
   const { customerId } = useLocalSearchParams<{ customerId?: string }>();
 
   const [credits, setCredits] = useState<CreditListItem[]>([]);
@@ -148,6 +150,15 @@ export default function Credits() {
     if (parsedDueDateValue === null) {
       Alert.alert('Check due date', 'Use YYYY-MM-DD format, for example 2026-05-30.');
       return;
+    }
+    if (parsedDueDateValue) {
+      const due = new Date(parsedDueDateValue);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (due < today) {
+        Alert.alert('Check due date', 'Due date must be today or in the future.');
+        return;
+      }
     }
 
     haptics.medium();
@@ -330,6 +341,7 @@ export default function Credits() {
         dueDate={dueDate}
         note={note}
         saving={saving}
+        isOnline={isOnline}
         onSelectCustomer={setSelectedCustomerId}
         onAmountChange={setAmount}
         onDueDateChange={setDueDate}

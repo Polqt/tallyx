@@ -13,6 +13,7 @@ import {
   signInWithEmail,
   signUpWithEmail,
 } from '@/features/auth/auth.service';
+import { isValidStellarAddress } from '@/features/stellar/stellar.service';
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -125,6 +126,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function setupStore(storeName: string, phoneNumber: string, stellarPublicKey: string) {
     if (!token) {
       throw new Error('Missing auth session. Please sign in again.');
+    }
+
+    if (stellarPublicKey && !isValidStellarAddress(stellarPublicKey)) {
+      throw new Error('Invalid Stellar public key. It must start with G and be 56 characters.');
     }
 
     const data = await createStoreProfile(token, {

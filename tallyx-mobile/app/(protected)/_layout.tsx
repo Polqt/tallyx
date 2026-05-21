@@ -2,9 +2,12 @@ import { ActivityIndicator, View } from 'react-native';
 import { Redirect, Stack } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { OfflineBanner } from '@/components/OfflineBanner';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 export default function ProtectedLayout() {
   const { user, isLoading } = useAuth();
+  const { isOnline } = useNetworkStatus();
 
   if (isLoading) {
     return (
@@ -19,16 +22,19 @@ export default function ProtectedLayout() {
 
   return (
     <ErrorBoundary>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="customers/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="credits/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="credits/new" options={{ headerShown: true, title: 'New Credit', presentation: 'modal', contentStyle: { backgroundColor: '#FFFFFF' } }} />
-        <Stack.Screen name="payments/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="payments/new" options={{ headerShown: true, title: 'Record Payment', presentation: 'modal', contentStyle: { backgroundColor: '#FFFFFF' } }} />
-        <Stack.Screen name="settings/guide" options={{ headerShown: false }} />
-        <Stack.Screen name="settings/about" options={{ headerShown: false }} />
-      </Stack>
+      <View style={{ flex: 1 }}>
+        <OfflineBanner isOnline={isOnline} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="customers/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="credits/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="credits/new" options={{ headerShown: true, title: 'New Credit', presentation: 'modal', contentStyle: { backgroundColor: '#FFFFFF' } }} />
+          <Stack.Screen name="payments/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="payments/new" options={{ headerShown: true, title: 'Record Payment', presentation: 'modal', contentStyle: { backgroundColor: '#FFFFFF' } }} />
+          <Stack.Screen name="settings/guide" options={{ headerShown: false }} />
+          <Stack.Screen name="settings/about" options={{ headerShown: false }} />
+        </Stack>
+      </View>
     </ErrorBoundary>
   );
 }
