@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, FlatList, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, BackHandler, FlatList, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import { Plus, UsersRound } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
+import BottomSheet from '@gorhom/bottom-sheet';
 import { AddCustomerSheet } from '@/components/customers/add-customer-sheet';
 import { CustomerEmptyState } from '@/components/customers/customer-empty-state';
 import { CustomerListRow } from '@/components/customers/customer-list-row';
 import { CustomerSearchBar } from '@/components/customers/customer-search-bar';
 import { useAuth } from '@/context/AuthContext';
+import { useNavVisibility } from '@/context/NavVisibilityContext';
 import { createCustomer, fetchCustomers } from '@/features/customers/customer.service';
 import type { CustomerListItem } from '@/features/customers/customer.types';
 import { haptics } from '@/utils/haptics';
@@ -17,6 +19,7 @@ import { haptics } from '@/utils/haptics';
 export default function Customers() {
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
+  const { hideNav, showNav } = useNavVisibility();
   const [customers, setCustomers] = useState<CustomerListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -27,11 +30,11 @@ export default function Customers() {
   const [hasMore, setHasMore] = useState(false);
   const [totalCustomers, setTotalCustomers] = useState(0);
 
-  const [modalVisible, setModalVisible] = useState(false);
+  const sheetRef = useRef<BottomSheet>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [creating, setCreating] = useState(false);
-
 
   const fadeAnims = useRef<Record<string, Animated.Value>>({});
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -59,6 +62,17 @@ export default function Customers() {
     return () => pulseLoop.current?.stop();
   }, [customers.length, loading, pulseAnim]);
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!sheetOpen) return;
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        sheetRef.current?.close();
+        return true;
+      });
+      return () => sub.remove();
+    }, [sheetOpen])
+  );
+
   useEffect(() => {
     if (!token) {
       setLoading(false);
@@ -68,8 +82,6 @@ export default function Customers() {
     const authToken = token;
     const controller = new AbortController();
 
-    // Reset list state immediately so stale results from the previous query
-    // are never shown while the new request is in-flight.
     setCustomers([]);
     setPage(1);
     setHasMore(false);
@@ -132,27 +144,21 @@ export default function Customers() {
 
   function openSheet() {
     haptics.light();
-    setModalVisible(true);
+    sheetRef.current?.snapToIndex(0);
+    setSheetOpen(true);
+    hideNav();
   }
 
-  function resetForm() {
-    setModalVisible(false);
-    setNewName('');
-    setNewPhone('');
-  }
-
-  function clearForm() {
+  function handleSheetClose() {
+    setSheetOpen(false);
+    showNav();
     setNewName('');
     setNewPhone('');
   }
 
   async function handleCreate() {
-    if (!token) {
-      return;
-    }
-    if (!newName.trim()) {
-      return;
-    }
+    if (!token) return;
+    if (!newName.trim()) return;
     if (newPhone.trim() && newPhone.trim().length < 7) {
       Toast.show({
         type: 'error',
@@ -175,8 +181,7 @@ export default function Customers() {
       fadeAnims.current[customer.id] = new Animated.Value(0);
       setCustomers((prev) => [customer, ...prev]);
       setTotalCustomers((total) => total + 1);
-      clearForm();
-      setModalVisible(false);
+      sheetRef.current?.close();
       haptics.success();
       router.push(`/(protected)/customers/${customer.id}` as any);
 
@@ -216,79 +221,83 @@ export default function Customers() {
   }, []);
 
   const renderHeader = useCallback(() => (
-    <View className="gap-4 pb-4">
-      <View className="rounded-[28px] bg-[#14532D] p-8" style={{ boxShadow: '0 12px 30px rgba(20, 83, 45, 0.16)' }}>
-        <View className="flex-row items-center justify-between">
-          <View>
-            <Text className="text-[12px] font-medium uppercase tracking-[2px] text-white/55">
-              Customer book
-            </Text>
-            <Text className="mt-1 text-[26px] font-bold text-white">{totalCustomers} customers</Text>
-            <Text className="mt-2 text-[13px] text-white/60">
-              Backend synced customer records
-            </Text>
-          </View>
-          <View className="h-12 w-12 items-center justify-center rounded-full bg-white/12">
-            <UsersRound size={22} color="#FFFFFF" strokeWidth={2} />
-          </View>
-        </View>
-      </View>
-
+    <View style={{ marginBottom: 8 }}>
       <CustomerSearchBar value={query} onChange={setQuery} />
-
-      <View className="flex-row items-center justify-between">
-        <Text className="text-[12px] font-bold uppercase tracking-[1.8px] text-gray-400">
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2, marginTop: 16, marginBottom: 8 }}>
+        <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 15, color: '#111827' }}>
           {query.trim() ? 'Search results' : 'Recent customers'}
         </Text>
-        <Text className="text-[12px] font-medium text-gray-400">
+        <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 12, color: '#9CA3AF' }}>
           {customers.length} shown
         </Text>
       </View>
     </View>
-  ), [customers.length, query, totalCustomers]);
+  ), [customers.length, query]);
 
   const renderFooter = useCallback(() => {
     if (!loadingMore) return null;
-
     return (
-      <View className="items-center py-4">
+      <View style={{ alignItems: 'center', paddingVertical: 16 }}>
         <ActivityIndicator size="small" color="#16A34A" />
       </View>
     );
   }, [loadingMore]);
 
   return (
-    <View className="flex-1 bg-gray-50" style={{ paddingTop: insets.top + 16 }}>
-
-      {loading ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <ActivityIndicator size="small" color="#16A34A" />
-          <Text className="text-sm text-gray-400 mt-3">Loading customers...</Text>
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <View style={{ backgroundColor: '#14532D', paddingTop: insets.top + 20, paddingHorizontal: 20, paddingBottom: 32 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20 }}>
+          <UsersRound size={16} color="rgba(255,255,255,0.7)" />
+          <Text style={{ fontFamily: 'Geist_600SemiBold', fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+            Customer Book
+          </Text>
         </View>
-      ) : loadError ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-base font-bold text-amber-700 mb-2">Customers unavailable</Text>
-          <Text className="text-sm text-gray-500 text-center leading-5">{loadError}</Text>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{ fontFamily: 'Geist_500Medium', fontSize: 11, color: 'rgba(255,255,255,0.55)', letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 8 }}>
+            Total Customers
+          </Text>
+          <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 44, color: '#FFFFFF', lineHeight: 52 }}>
+            {totalCustomers}
+          </Text>
+          <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 8 }}>
+            {totalCustomers === 1 ? '1 customer record' : `${totalCustomers} customer records`}
+          </Text>
         </View>
-      ) : (
-        <FlatList
-          data={customers}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          ListHeaderComponent={renderHeader}
-          ListFooterComponent={renderFooter}
-          ListEmptyComponent={
-            <CustomerEmptyState isSearching={Boolean(query.trim())} onAddCustomer={openSheet} />
-          }
-          onEndReached={loadMoreCustomers}
-          onEndReachedThreshold={0.35}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 32 }}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        />
-      )}
+      </View>
 
-      {!modalVisible && (
+      <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -20, flex: 1 }}>
+        {loading ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator size="small" color="#16A34A" />
+            <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: '#9CA3AF', marginTop: 10 }}>
+              Loading customers...
+            </Text>
+          </View>
+        ) : loadError ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+            <Text style={{ fontFamily: 'Geist_600SemiBold', fontSize: 16, color: '#991B1B' }}>Customers unavailable</Text>
+            <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: '#6B7280', textAlign: 'center', marginTop: 6 }}>{loadError}</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={customers}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            ListHeaderComponent={renderHeader}
+            ListFooterComponent={renderFooter}
+            ListEmptyComponent={
+              <CustomerEmptyState isSearching={Boolean(query.trim())} onAddCustomer={openSheet} />
+            }
+            onEndReached={loadMoreCustomers}
+            onEndReachedThreshold={0.35}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: insets.bottom + 100 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          />
+        )}
+      </View>
+
+      {!sheetOpen && (
         <Animated.View
           style={{
             position: 'absolute',
@@ -320,14 +329,14 @@ export default function Customers() {
       )}
 
       <AddCustomerSheet
-        visible={modalVisible}
+        ref={sheetRef}
         name={newName}
         phone={newPhone}
         creating={creating}
         onNameChange={setNewName}
         onPhoneChange={setNewPhone}
         onSubmit={handleCreate}
-        onClose={resetForm}
+        onClose={handleSheetClose}
       />
     </View>
   );

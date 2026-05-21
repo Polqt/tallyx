@@ -1,11 +1,13 @@
-import React from 'react';
-import { Modal, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { forwardRef, useCallback } from 'react';
+import { Text, TouchableOpacity, View, StyleSheet, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X } from 'lucide-react-native';
+import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { AddCustomerForm } from '@/components/customers/add-customer-form';
 
+const SNAP = 0.75;
+const SHEET_HEIGHT = Dimensions.get('window').height * SNAP;
+
 type AddCustomerSheetProps = {
-  visible: boolean;
   name: string;
   phone: string;
   creating: boolean;
@@ -15,70 +17,44 @@ type AddCustomerSheetProps = {
   onClose: () => void;
 };
 
-export function AddCustomerSheet({
-  visible,
-  name,
-  phone,
-  creating,
-  onNameChange,
-  onPhoneChange,
-  onSubmit,
-  onClose,
-}: AddCustomerSheetProps) {
-  const insets = useSafeAreaInsets();
-  const canSubmit = Boolean(name.trim()) && !creating;
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1, backgroundColor: '#FFFFFF' }}
+export const AddCustomerSheet = forwardRef<BottomSheet, AddCustomerSheetProps>(
+  function AddCustomerSheet(
+    { name, phone, creating, onNameChange, onPhoneChange, onSubmit, onClose },
+    ref
+  ) {
+    const insets = useSafeAreaInsets();
+    const canSubmit = Boolean(name.trim()) && !creating;
+
+    const handleChange = useCallback(
+      (index: number) => {
+        if (index === -1) onClose();
+      },
+      [onClose]
+    );
+
+    return (
+      <BottomSheet
+        ref={ref}
+        index={-1}
+        snapPoints={['75%']}
+        enablePanDownToClose
+        enableDynamicSizing={false}
+        onChange={handleChange}
+        backgroundStyle={{ backgroundColor: '#FFFFFF', borderRadius: 28 }}
+        handleIndicatorStyle={{ backgroundColor: '#D1D5DB', width: 36 }}
       >
-        <View style={{ flex: 1, paddingTop: 20 }}>
+        <BottomSheetView style={{ height: SHEET_HEIGHT - 30 }}>
+
           {/* Header */}
-          <View 
-            style={{ 
-              flexDirection: 'row', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
-              paddingHorizontal: 20, 
-              paddingBottom: 16, 
-              borderBottomWidth: 1, 
-              borderColor: '#F3F4F6' 
-            }}
-          >
-            <TouchableOpacity 
-              onPress={onClose} 
-              activeOpacity={0.7} 
-              style={{ 
-                width: 40, 
-                height: 40, 
-                borderRadius: 20, 
-                backgroundColor: '#F3F4F6', 
-                alignItems: 'center', 
-                justifyContent: 'center' 
-              }}
-            >
-              <X size={20} color="#1F2937" strokeWidth={2.5} />
-            </TouchableOpacity>
-            <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 17, color: '#111827' }}>NEW CUSTOMER</Text>
-            <View style={{ width: 40 }} />
+          <View style={[styles.header, { borderBottomWidth: 1, borderColor: '#F3F4F6' }]}>
+            <Text style={styles.title}>New Customer</Text>
           </View>
 
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: insets.bottom + 24 }}
-          >
-            <View className="mb-10 items-center">
-              <Text className="text-[13px] leading-5 text-gray-400 text-center">
-                Credits and payments can be added after creating the customer profile.
-              </Text>
-            </View>
-
+          {/* Form */}
+          <View style={styles.form}>
+            <Text style={styles.hint}>
+              Credits and payments can be added after creating the customer profile.
+            </Text>
             <AddCustomerForm
               name={name}
               phone={phone}
@@ -86,22 +62,73 @@ export function AddCustomerSheet({
               onPhoneChange={onPhoneChange}
               onSubmit={onSubmit}
             />
+          </View>
 
+          {/* Button pinned to bottom */}
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
             <TouchableOpacity
               onPress={onSubmit}
               activeOpacity={0.85}
               disabled={!canSubmit}
-              className={`h-[54px] items-center justify-center rounded-2xl mt-8 ${
-                canSubmit ? 'bg-green-600' : 'bg-green-200'
-              }`}
+              style={[styles.button, { backgroundColor: canSubmit ? '#16A34A' : '#BBF7D0' }]}
             >
-              <Text className="text-[15px] font-bold text-white">
+              <Text style={styles.buttonText}>
                 {creating ? 'Creating...' : 'Create Customer'}
               </Text>
             </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
-  );
-}
+          </View>
+
+        </BottomSheetView>
+      </BottomSheet>
+    );
+  }
+);
+
+const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  title: {
+    fontFamily: 'Geist_700Bold',
+    fontSize: 16,
+    color: '#111827',
+    textAlign: 'center',
+  },
+  form: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+  },
+  hint: {
+    fontFamily: 'Geist_400Regular',
+    fontSize: 13,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
+  },
+  button: {
+    height: 52,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    fontFamily: 'Geist_700Bold',
+    fontSize: 15,
+    color: '#FFFFFF',
+  },
+});

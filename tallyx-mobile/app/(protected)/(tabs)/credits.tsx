@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Animated, BackHandler, FlatList, Modal, Press
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronDown, FileText, Plus } from 'lucide-react-native';
+import { PaymentSearchBar } from '@/components/payments/payment-search-bar';
 import BottomSheet from '@gorhom/bottom-sheet';
 import Toast from 'react-native-toast-message';
 import { AddCreditSheet } from '@/components/credits/add-credit-sheet';
@@ -38,6 +39,7 @@ export default function Credits() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<CreditStatus | undefined>(undefined);
   const [filterPickerVisible, setFilterPickerVisible] = useState(false);
+  const [search, setSearch] = useState('');
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
@@ -181,65 +183,14 @@ export default function Credits() {
 
 
   const renderHeader = useCallback(() => (
-    <View className="gap-4 pb-4">
-      <View
-        style={{
-          backgroundColor: '#14532D',
-          borderRadius: 20,
-          padding: 20,
-          shadowColor: '#14532D',
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.22,
-          shadowRadius: 20,
-          elevation: 6,
-        }}
-      >
-        <View className="flex-row items-start justify-between">
-          <View className="flex-1 pr-4">
-            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginBottom: 6 }}>
-              Total Receivables
-            </Text>
-            <Text style={{ fontSize: 44, fontWeight: '700', color: '#FFFFFF', lineHeight: 50 }}>
-              {formatPeso(totalReceivables)}
-            </Text>
-            <View className="mt-3 flex-row items-center gap-1.5">
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: overdueAmount > 0 ? '#F59E0B' : '#4ADE80',
-                }}
-              />
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: overdueAmount > 0 ? '#FCD34D' : 'rgba(255,255,255,0.75)',
-                }}
-              >
-                {overdueAmount > 0 ? `${formatPeso(overdueAmount)} overdue` : 'No overdue credits'}
-              </Text>
-            </View>
-          </View>
-
-          <View
-            style={{
-              backgroundColor: overdueAmount > 0 ? 'rgba(245,158,11,0.2)' : 'rgba(74,222,128,0.2)',
-              borderRadius: 20,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-            }}
-          >
-            <Text style={{ fontSize: 12, fontWeight: '700', color: overdueAmount > 0 ? '#FCD34D' : '#4ADE80' }}>
-              {overdueAmount > 0 ? 'Has overdue' : 'All good'}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Section label row */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 }}>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>
+    <View style={{ marginBottom: 8 }}>
+      <PaymentSearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Search by customer name..."
+      />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2, marginTop: 12, marginBottom: 8 }}>
+        <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 15, color: '#111827' }}>
           {customerId ? 'Customer Credits' : 'Recent Credits'}
         </Text>
         <TouchableOpacity
@@ -252,76 +203,93 @@ export default function Credits() {
             borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6,
           }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '500', color: statusFilter ? '#16A34A' : '#374151' }}>
+          <Text style={{ fontFamily: 'Geist_500Medium', fontSize: 13, color: statusFilter ? '#16A34A' : '#374151' }}>
             {statusFilter ? statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1) : 'All'}
           </Text>
           <ChevronDown size={13} color={statusFilter ? '#16A34A' : '#6B7280'} strokeWidth={2} />
         </TouchableOpacity>
       </View>
-
     </View>
-  ), [customerId, overdueAmount, statusFilter, totalReceivables]);
+  ), [customerId, search, statusFilter]);
 
   const renderFooter = useCallback(() => {
     if (!loadingMore) return null;
     return (
-      <View className="items-center py-4">
+      <View style={{ alignItems: 'center', paddingVertical: 16 }}>
         <ActivityIndicator size="small" color="#16A34A" />
       </View>
     );
   }, [loadingMore]);
 
   return (
-    <View className="flex-1 bg-gray-50" style={{ paddingTop: insets.top + 16 }}>
-      {loading ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <ActivityIndicator size="small" color="#16A34A" />
-          <Text className="mt-3 text-sm text-gray-400">Loading credits...</Text>
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <View style={{ backgroundColor: '#14532D', paddingTop: insets.top + 20, paddingHorizontal: 20, paddingBottom: 32 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20 }}>
+          <FileText size={16} color="rgba(255,255,255,0.7)" />
+          <Text style={{ fontFamily: 'Geist_600SemiBold', fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+            Credit Ledger
+          </Text>
         </View>
-      ) : loadError ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <Text className="mb-2 text-base font-bold text-amber-700">Credits unavailable</Text>
-          <Text className="text-center text-sm leading-5 text-gray-500">{loadError}</Text>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{ fontFamily: 'Geist_500Medium', fontSize: 11, color: 'rgba(255,255,255,0.55)', letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 8 }}>
+            Total Receivables
+          </Text>
+          <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 44, color: '#FFFFFF', lineHeight: 52 }}>
+            {formatPeso(totalReceivables)}
+          </Text>
+          <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: overdueAmount > 0 ? '#FCD34D' : 'rgba(255,255,255,0.7)', marginTop: 8 }}>
+            {overdueAmount > 0 ? `${formatPeso(overdueAmount)} overdue` : 'No overdue credits'}
+          </Text>
         </View>
-      ) : (
-        <FlatList
-          data={credits}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <CreditRow credit={item} />}
-          ListHeaderComponent={renderHeader}
-          ListFooterComponent={renderFooter}
-          ListEmptyComponent={
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingVertical: 80 }}>
-              <View
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 28,
-                  backgroundColor: '#F0FDF4',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 16,
-                }}
-              >
-                <FileText size={24} color="#16A34A" strokeWidth={1.8} />
+      </View>
+
+      <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -20, flex: 1 }}>
+        {loading ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator size="small" color="#16A34A" />
+            <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: '#9CA3AF', marginTop: 10 }}>
+              Loading credits...
+            </Text>
+          </View>
+        ) : loadError ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+            <Text style={{ fontFamily: 'Geist_600SemiBold', fontSize: 16, color: '#991B1B' }}>Credits unavailable</Text>
+            <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: '#6B7280', textAlign: 'center', marginTop: 6 }}>{loadError}</Text>
+            <TouchableOpacity
+              onPress={() => loadCredits(1)}
+              style={{ marginTop: 16, backgroundColor: '#14532D', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}
+            >
+              <Text style={{ fontFamily: 'Geist_600SemiBold', fontSize: 13, color: '#FFFFFF' }}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={search.trim() ? credits.filter((c) => c.customerName?.toLowerCase().includes(search.trim().toLowerCase())) : credits}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => <CreditRow credit={item} />}
+            ListHeaderComponent={renderHeader}
+            ListFooterComponent={renderFooter}
+            ListEmptyComponent={
+              <View style={{ alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingVertical: 80 }}>
+                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#F0FDF4', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                  <FileText size={24} color="#16A34A" strokeWidth={1.8} />
+                </View>
+                <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 16, color: '#111827', marginBottom: 8, textAlign: 'center' }}>
+                  {statusFilter ? `No ${statusFilter} credits` : 'No credits yet'}
+                </Text>
+                <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 20 }}>
+                  {statusFilter ? 'Try a different filter to see other credits.' : "Record a customer's utang and it will appear here."}
+                </Text>
               </View>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 8, textAlign: 'center' }}>
-                {statusFilter ? `No ${statusFilter} credits` : 'No credits yet'}
-              </Text>
-              <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 20 }}>
-                {statusFilter
-                  ? 'Try a different filter to see other credits.'
-                  : "Record a customer's utang and it will appear here."}
-              </Text>
-            </View>
-          }
-          onEndReached={loadMoreCredits}
-          onEndReachedThreshold={0.35}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshCredits} tintColor="#16A34A" />}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 120 }}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+            }
+            onEndReached={loadMoreCredits}
+            onEndReachedThreshold={0.35}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshCredits} tintColor="#16A34A" />}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: insets.bottom + 120 }}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </View>
 
       {!sheetOpen && (
         <Animated.View

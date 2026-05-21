@@ -113,7 +113,7 @@ export default function PaymentDetailScreen() {
           </View>
 
           {/* Customer */}
-          <View style={{ marginHorizontal: 20, marginBottom: 10 }}>
+          <View style={{ marginHorizontal: 20, marginBottom: 20 }}>
             <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FFFFFF', padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
               <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: avatarColor, alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 18, color: '#FFFFFF' }}>{initials}</Text>
@@ -126,21 +126,21 @@ export default function PaymentDetailScreen() {
           </View>
 
           {/* Credit info */}
-          <View style={{ marginHorizontal: 20, marginBottom: 10 }}>
+          <View style={{ marginHorizontal: 20, marginBottom: 20 }}>
             <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FFFFFF', padding: 16 }}>
               <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Applied to Credit</Text>
-              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
-                <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+                <View>
                   <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 3 }}>Original</Text>
                   <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>{formatPeso(Number(payment.credit.amount))}</Text>
                 </View>
-                <View style={{ flex: 1 }}>
+                <View>
                   <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 3 }}>Remaining</Text>
                   <Text style={{ fontSize: 15, fontWeight: '700', color: Number(payment.credit.balance) > 0 ? '#D97706' : '#16A34A' }}>
                     {formatPeso(Number(payment.credit.balance))}
                   </Text>
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={{ alignItems: 'flex-end' }}>
                   <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 3 }}>Status</Text>
                   <Text style={{ fontSize: 13, fontWeight: '700', color: payment.credit.status === 'paid' ? '#16A34A' : '#D97706', textTransform: 'capitalize' }}>
                     {payment.credit.status}
@@ -158,7 +158,7 @@ export default function PaymentDetailScreen() {
           </View>
 
           {/* Receipt ID */}
-          <View style={{ marginHorizontal: 20, marginBottom: 10 }}>
+          <View style={{ marginHorizontal: 20, marginBottom: 20 }}>
             <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FFFFFF', padding: 16 }}>
               <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Receipt ID</Text>
               <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', letterSpacing: 0.5 }}>
@@ -168,7 +168,7 @@ export default function PaymentDetailScreen() {
           </View>
 
           {/* Blockchain */}
-          <View style={{ marginHorizontal: 20, marginBottom: 10 }}>
+          <View style={{ marginHorizontal: 20, marginBottom: 20 }}>
             <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FFFFFF', padding: 16 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

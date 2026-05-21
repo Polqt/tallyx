@@ -1,18 +1,13 @@
 import { TextInput, TouchableOpacity, View } from 'react-native';
 import { Search, X } from 'lucide-react-native';
-import { haptics } from '@/utils/haptics';
 
 interface Props {
   value: string;
   onChange: (text: string) => void;
+  placeholder?: string;
 }
 
-export function CustomerSearchBar({ value, onChange }: Props) {
-  function clear() {
-    haptics.light();
-    onChange('');
-  }
-
+export function PaymentSearchBar({ value, onChange, placeholder = 'Search...' }: Props) {
   return (
     <View
       style={{
@@ -31,10 +26,8 @@ export function CustomerSearchBar({ value, onChange }: Props) {
       <TextInput
         value={value}
         onChangeText={onChange}
-        placeholder="Search by name or phone"
+        placeholder={placeholder}
         placeholderTextColor="#9CA3AF"
-        returnKeyType="search"
-        autoCorrect={false}
         style={{
           flex: 1,
           fontFamily: 'Geist_400Regular',
@@ -44,7 +37,10 @@ export function CustomerSearchBar({ value, onChange }: Props) {
         }}
       />
       {value.length > 0 && (
-        <TouchableOpacity onPress={clear} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <TouchableOpacity
+          onPress={() => onChange('')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
           <X size={13} color="#9CA3AF" strokeWidth={2} />
         </TouchableOpacity>
       )}

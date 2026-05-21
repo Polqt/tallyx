@@ -23,11 +23,12 @@ export function CustomerListRow({ customer, opacity, onPress }: CustomerListRowP
           flexDirection: 'row',
           alignItems: 'center',
           backgroundColor: '#FFFFFF',
-          borderRadius: 24,
+          borderRadius: 16,
           borderWidth: 1,
           borderColor: '#F3F4F6',
-          padding: 16,
-          marginBottom: 12,
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+          marginBottom: 8,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.04,
@@ -35,12 +36,12 @@ export function CustomerListRow({ customer, opacity, onPress }: CustomerListRowP
           elevation: 2,
         }}
       >
-        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF' }}>{customer.name[0]?.toUpperCase() ?? '?'}</Text>
+        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>{customer.name[0]?.toUpperCase() ?? '?'}</Text>
         </View>
 
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={{ fontSize: 15, fontWeight: '700', color: '#030712' }} numberOfLines={1}>
+        <View style={{ flex: 1, marginLeft: 10 }}>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: '#030712' }} numberOfLines={1}>
             {customer.name}
           </Text>
           {customer.lastTransactionDate ? (
