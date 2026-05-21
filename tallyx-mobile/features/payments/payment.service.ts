@@ -1,5 +1,6 @@
 import type { PaymentItem, RecordPaymentInput } from './payment.types';
 import { apiRequest } from '@/utils/api-client';
+import { cachePayments, getCachedPayments } from '@/lib/cache/payments.cache';
 
 export interface PaymentsPage {
   items: PaymentItem[];
@@ -7,10 +8,25 @@ export interface PaymentsPage {
   nextCursor: string | null;
 }
 
-export function fetchPayments(token: string, cursor?: string, signal?: AbortSignal) {
+export async function fetchPayments(
+  token: string,
+  cursor?: string,
+  signal?: AbortSignal
+): Promise<PaymentsPage> {
   const params = new URLSearchParams({ limit: '50' });
   if (cursor) params.set('cursor', cursor);
-  return apiRequest<PaymentsPage>(`/payments?${params}`, token, { signal });
+  try {
+    const data = await apiRequest<PaymentsPage>(`/payments?${params}`, token, { signal });
+    if (!cursor) {
+      cachePayments(data.items).catch(() => {});
+    }
+    return data;
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') throw err;
+    if (cursor) throw err;
+    const cached = await getCachedPayments();
+    return { items: cached, hasMore: false, nextCursor: null };
+  }
 }
 
 export function fetchPayment(token: string, id: string, signal?: AbortSignal) {
