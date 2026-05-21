@@ -77,8 +77,8 @@ export async function getDashboardSummary(userId: string, query: DashboardQuery 
     : eq(credits.storeId, store.id);
 
   const [customerRows, creditRows, paymentRows] = await Promise.all([
-    db.select().from(customers).where(eq(customers.storeId, store.id)),
-    db.select().from(credits).where(creditWhere).orderBy(desc(credits.createdAt)),
+    db.select().from(customers).where(eq(customers.storeId, store.id)).limit(500),
+    db.select().from(credits).where(creditWhere).orderBy(desc(credits.createdAt)).limit(500),
     db
       .select({
         id: payments.id,
@@ -92,7 +92,8 @@ export async function getDashboardSummary(userId: string, query: DashboardQuery 
       .innerJoin(credits, eq(payments.creditId, credits.id))
       .innerJoin(customers, eq(credits.customerId, customers.id))
       .where(paymentWhere)
-      .orderBy(desc(payments.createdAt)),
+      .orderBy(desc(payments.createdAt))
+      .limit(200),
   ]);
 
   const now = new Date();

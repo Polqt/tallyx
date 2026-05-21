@@ -9,6 +9,9 @@ import { paymentRouter } from "./features/payments/payments.router.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { apiLimiter, authLimiter } from "./middleware/rateLimiters.js";
 import { requestId } from "./middleware/requestId.js";
+import { db } from "./db/client.js";
+import { stores } from "./db/schema.js";
+import { AppError } from "./middleware/errorHandler.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,7 +23,7 @@ app.use(cors({
     : ['http://localhost:3000', 'http://localhost:8081'],
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: "100kb" }));
 
 // Routes
 app.use("/auth", authLimiter, authRouter);
@@ -29,8 +32,13 @@ app.use("/customers", apiLimiter, customerRouter);
 app.use("/credits", apiLimiter, creditRouter);
 app.use("/payments", apiLimiter, paymentRouter);
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
+app.get("/health", async (_req, res, next) => {
+  try {
+    await db.select().from(stores).limit(1);
+    res.json({ status: "ok" });
+  } catch (err) {
+    next(new AppError("Database unavailable", 503));
+  }
 });
 
 
@@ -52,6 +60,15 @@ if (missingEnv.length > 0) {
   process.exit(1);
 }
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+const server = app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
+
+function shutdown() {
+  server.close(() => {
+    process.exit(0);
+  });
+}
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);

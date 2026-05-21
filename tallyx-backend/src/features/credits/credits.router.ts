@@ -94,8 +94,8 @@ creditRouter.patch("/:id", async (req: Request, res: Response, next: NextFunctio
 // DELETE /credits/:id
 creditRouter.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await deleteCreditForUser(req.user!.id, req.params.id as string);
-    res.json(data);
+    await deleteCreditForUser(req.user!.id, req.params.id as string);
+    res.status(204).send();
   } catch (err) {
     next(err);
   }
