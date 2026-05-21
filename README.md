@@ -1,220 +1,89 @@
 # Tallyx
 
-Blockchain-verified utang infrastructure for micro-retailers.
+> Blockchain-verified utang infrastructure for micro-retailers.
 
-Tallyx helps sari-sari stores and small neighborhood retailers turn informal credit records into a clear receivables ledger with optional Stellar blockchain verification. The mobile app gives store owners a simple way to track customers, credits, payments, overdue balances, and verification history without making the experience feel like a crypto product.
+## 🧩 Problem
 
-## The Problem
+Millions of sari-sari store owners and micro-retailers across the Philippines still manage utang (informal credit) through notebooks, chat messages, or memory. This works for daily trust-based selling — but creates real problems as the store grows:
 
-Many micro-retailers still manage utang through notebooks, chat messages, or memory. That works for daily trust-based selling, but it creates real problems as the store grows:
+- Balances are easy to forget or dispute
+- Payment history is hard to prove
+- Receivables are not structured as financial data
+- Store owners cannot see overdue or active credits at a glance
+- Informal credit stays invisible to digital finance tools
 
-- balances are easy to forget or dispute
-- payment history is hard to prove
-- receivables are not structured as financial data
-- store owners cannot easily see overdue or active credit
-- informal credit stays invisible to digital finance tools
+There is no affordable, simple tool built for the informal credit realities of Filipino micro-retailers.
 
-Tallyx keeps the simplicity of the traditional utang system, then adds structure, visibility, and a verifiable transaction trail.
+## 🌟 Vision
 
-## The Solution
+A future where every sari-sari store owner has a clear, verifiable receivables ledger — one that works offline, stays simple, and creates a financial paper trail that can be used to access formal credit, prove business health, or build trust with customers.
 
-Tallyx is a mobile-first receivables ledger for store owners.
+Tallyx is the first step: turn the utang notebook into a structured, blockchain-anchored ledger without making it feel like a crypto product.
 
-The store owner can:
+## 🎯 Purpose
 
-- create an account
-- set up a store profile
-- generate a Stellar wallet
-- add customers
-- record credit given to customers
-- record payments collected
-- monitor total receivables and overdue balances
-- view blockchain sync status and transaction references
+We built Tallyx because the informal credit system is not broken — it is just invisible. Store owners already extend credit every day. They already track it. They just lack the tools to make that data useful, verifiable, and persistent.
 
-Customers are not app users in the MVP. They exist as store-owned records with balances, QR identities, and transaction history.
+Tallyx keeps the simplicity of the traditional utang workflow, then adds structure, visibility, and an optional Stellar blockchain verification trail.
 
-## Why Blockchain
+## 👥 Target Users
 
-Tallyx does not use blockchain for trading, speculation, or DeFi complexity.
+- **Sari-sari store owners** — primary users managing daily credit and collections
+- **Small neighborhood retailers** — tiangge vendors, market stalls, and community shops
+- **Micro-entrepreneurs** — any small business owner extending informal credit to repeat customers
 
-Blockchain is used as a verification layer:
+## ✨ Features
 
-```txt
-Store ledger action
-  -> backend persistence
-  -> Soroban contract call
-  -> Stellar transaction hash
-  -> verifiable credit/payment record
-```
+- **Customer management** — add customers with QR identity and track total outstanding balance
+- **Credit recording** — log credit given with amount, due date, notes, and status tracking
+- **Payment recording** — record cash or USDC payments with full history per credit
+- **Dashboard** — live view of total receivables, overdue amount, active customers, and recent activity
+- **Blockchain sync** — credits and payments optionally verified on Stellar Soroban with transaction hash references
+- **Offline-first** — local SQLite cache so the app works without internet; syncs when connection returns
+- **QR scanning** — scan customer QR codes to instantly load their profile and credits
+- **Sync status** — per-record status: `local`, `pending`, `syncing`, `synced`, or `failed`
 
-The app still works if blockchain sync is unavailable. Credit and payment recording should remain fast, local-friendly, and reliable. Blockchain status is treated as metadata: `pending`, `syncing`, `synced`, or `failed`.
-
-## How It Works
-
-```txt
-1. Store owner signs up
-2. Store owner creates store profile
-3. Mobile app generates a Stellar wallet
-4. Secret key stays on the device
-5. Public key is saved to the backend
-6. Store owner adds customers
-7. Store owner records credits and payments
-8. Backend stores ledger data in PostgreSQL
-9. Backend syncs selected actions to Soroban
-10. App shows balances, history, and transaction references
-```
-
-## Demo Flow
-
-For a hackathon demo, the clean story is:
-
-1. Onboard as a sari-sari store owner.
-2. Create a store profile.
-3. Generate a wallet and show that only the public key is shared.
-4. Add a customer.
-5. Record a credit.
-6. Record a partial or full payment.
-7. Show dashboard totals updating.
-8. Show blockchain sync status or a transaction hash when available.
-
-## Core Features
-
-| Feature | Description |
-| --- | --- |
-| Onboarding | Separate product onboarding before authentication |
-| Authentication | Store owner sign-up and sign-in |
-| Store setup | Store name, phone number, and wallet generation |
-| Secure wallet | Stellar keypair generated on mobile; secret key stored in SecureStore |
-| Dashboard | Total receivables, overdue amount, active customers, recent activity |
-| Customers | Store-owned customer records with balances and QR identity |
-| Credits | Amount owed to the store with due date, status, and sync metadata |
-| Payments | Cash or USDC payment records with receipt and transaction reference support |
-| Backend API | Persistence, authentication, and Stellar orchestration |
-| Soroban contract | Minimal on-chain credit and payment verification |
-
-## Architecture
-
-```txt
-tallyx-mobile
-  Expo React Native app
-  Zustand local state
-  SecureStore for secrets
-  AsyncStorage for safe cached data
-
-tallyx-backend
-  Express TypeScript API
-  PostgreSQL persistence
-  Drizzle ORM schema
-  Zod validation
-  Stellar orchestration
-
-tallyx-contracts
-  Rust Soroban contract
-  credit creation
-  payment recording
-  balance lookup
-```
-
-High-level data flow:
-
-```txt
-Mobile App
-  -> REST API
-  -> PostgreSQL
-  -> Stellar SDK
-  -> Soroban Contract
-  -> Transaction Hash
-  -> Mobile App Sync Status
-```
-
-## Repository Structure
-
-```txt
-tallyx/
-  tallyx-mobile/
-    app/
-    components/
-    context/
-    features/
-    stores/
-    utils/
-
-  tallyx-backend/
-    src/
-      db/
-      features/
-      middleware/
-      server.ts
-
-  tallyx-contracts/
-    credit-ledger/
-      contracts/
-        credit-ledger/
-```
-
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Layer | Tools |
-| --- | --- |
+|---|---|
 | Mobile | Expo SDK 55, React Native, Expo Router, TypeScript |
-| Mobile state | Zustand, AsyncStorage, Expo SecureStore |
-| Mobile UI | NativeWind, Lucide React Native, Expo modules |
+| Mobile state | Zustand, SQLite (expo-sqlite), Expo SecureStore |
+| Mobile UI | NativeWind, Lucide React Native, Gorhom Bottom Sheet |
 | Backend | Node.js, Express, TypeScript |
 | Database | PostgreSQL, Drizzle ORM |
-| Validation/Auth | Zod, JWT, bcrypt |
-| Blockchain | Stellar SDK, Stellar CLI, Rust, Soroban SDK |
+| Validation / Auth | Zod, JWT, bcrypt |
+| Blockchain | Stellar SDK, Soroban SDK, Rust, Stellar CLI |
+| Deployment | Railway (backend), EAS (mobile OTA) |
 
-## Security Model
-
-Wallet and authentication security are intentionally simple:
-
-- Stellar secret keys stay only on the mobile device.
-- Stellar secret keys are stored only in Expo SecureStore.
-- Stellar secret keys are never sent to the backend.
-- Stellar public keys can be stored in PostgreSQL.
-- JWTs should be stored in SecureStore.
-- Passwords are hashed on the backend.
-- Backend secrets live in environment variables.
-
-## Getting Started
+## 🚀 How to Run Locally
 
 ### Prerequisites
 
 - Node.js 20+
-- npm
-- Docker
-- Expo CLI through `npx expo`
+- Docker (for PostgreSQL)
+- Expo CLI via `npx expo`
 - Stellar CLI for contract work
-- Rust for Soroban contract tests
 
 ### Mobile
 
 ```bash
 cd tallyx-mobile
 npm install
-npm run start
-```
-
-Useful checks:
-
-```bash
-npm run lint
-npx tsc --noEmit
+npx expo start
 ```
 
 ### Backend
 
 ```bash
+# Start PostgreSQL
+docker compose up postgres
+
+# Start backend
 cd tallyx-backend
 npm install
 cp .env.example .env
 npm run dev
-```
-
-Run PostgreSQL from the root folder:
-
-```bash
-docker compose up postgres
 ```
 
 ### Contracts
@@ -225,98 +94,51 @@ stellar contract build
 cargo test
 ```
 
-## Environment Variables
+## 🌐 Deployment
 
-Backend `.env`:
+### Testnet
 
-```env
-PORT=3000
-NODE_ENV=development
+- **Contract Address:** `CDE5TJ25YJHIS5UI4GSXBZMNJVIFTANMJDM66FFORPO4NJBYK7ZGZGUZ`
+- **Explorer:** [View on Stellar Expert (Testnet)](https://stellar.expert/explorer/testnet/contract/CDE5TJ25YJHIS5UI4GSXBZMNJVIFTANMJDM66FFORPO4NJBYK7ZGZGUZ)
+- **Backend API:** [https://tallyx-production.up.railway.app](https://tallyx-production.up.railway.app)
 
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=tallyx
-DB_USER=postgres
-DB_PASSWORD=your_password
+### Mainnet
 
-JWT_SECRET=your_jwt_secret_minimum_32_characters_long
-JWT_EXPIRES_IN=7d
+- **Contract Address:** `coming soon`
+- **Explorer:** `coming soon`
 
-STELLAR_NETWORK=testnet
-STELLAR_RPC_URL=https://soroban-testnet.stellar.org
-CREDIT_CONTRACT_ID=your_contract_id_here
+## 🎥 Demo
+
+- 🔗 **Live Backend:** [https://tallyx-production.up.railway.app/health](https://tallyx-production.up.railway.app/health)
+- 🎬 **Demo Video:** `coming soon`
+- 🖼️ **Pitch Deck:** `coming soon`
+
+## 🏗️ Architecture
+
+```
+tallyx-mobile         (Expo React Native)
+  └── REST API calls
+      └── tallyx-backend    (Express + PostgreSQL)
+          └── Stellar SDK
+              └── tallyx-contracts  (Soroban / Rust)
+                  └── Stellar Testnet / Mainnet
 ```
 
-## Current MVP Status
+### Security Model
 
-| Area | Status |
-| --- | --- |
-| Mobile onboarding | Started |
-| Auth screens and routing | Started |
-| Store setup | Started |
-| Wallet generation | Started |
-| Dashboard shell | Started |
-| Customers, credits, payments UI | Started |
-| Backend modules | Started |
-| PostgreSQL schema | Started |
-| Soroban credit ledger | Started |
-| Real Stellar backend sync | TODO |
+- Stellar secret keys stay only on the mobile device (Expo SecureStore)
+- Secret keys are never sent to the backend
+- Only public keys are stored in PostgreSQL
+- JWTs are used for session auth
+- Passwords are bcrypt-hashed on the backend
+- Backend secrets live in Railway environment variables
 
-## Roadmap
+## 👨‍💻 Team
 
-### Phase 1: Mobile UX
+| Name | Role | GitHub |
+|---|---|---|
+| Jepoy | Full-stack + Blockchain | @Polqt |
 
-- Complete onboarding and auth flow.
-- Complete store setup and wallet generation.
-- Polish dashboard, customer, credit, and payment screens.
-- Keep local state reliable before backend sync.
+## 📜 License
 
-### Phase 2: Backend Persistence
-
-- Connect mobile auth to backend auth.
-- Persist store profiles, customers, credits, and payments.
-- Fix backend TypeScript build issues.
-- Add clean loading, empty, and error states.
-
-### Phase 3: Blockchain Verification
-
-- Deploy the Soroban credit-ledger contract.
-- Replace mock Stellar transaction hashes with real contract calls.
-- Save transaction hashes on credits and payments.
-- Display sync status in the mobile app.
-
-### Phase 4: Demo Polish
-
-- Add realistic mock data.
-- Add receipt and QR flows.
-- Improve dashboard storytelling.
-- Prepare a clean end-to-end demo path.
-
-## GitHub Issues To Create
-
-These are the next practical issues to add:
-
-1. Mobile: Connect auth screens to real backend auth
-2. Mobile: Persist store profile after store setup
-3. Mobile: Connect customers to backend API
-4. Mobile: Connect credits to backend API
-5. Mobile: Connect payments to backend API
-6. Backend: Fix TypeScript build and ledger service types
-7. Backend: Implement Stellar contract calls
-8. Contracts: Add store authorization to credit ledger
-9. Contracts: Emit credit and payment events
-10. DevOps: Document testnet/mainnet deployment flow
-
-## Project Principles
-
-- Mobile-first.
-- Demo quality matters.
-- Keep the architecture beginner-friendly.
-- Do not overbuild blockchain features.
-- Do not make customers authenticate in the MVP.
-- Keep the app useful even when blockchain sync fails.
-- Prefer readable code over clever abstractions.
-
-## Product Positioning
-
-Tallyx modernizes the sari-sari store credit notebook without removing the trust-based workflow that makes it work. It gives store owners a better ledger today and creates a path toward verifiable financial data tomorrow.
+MIT
