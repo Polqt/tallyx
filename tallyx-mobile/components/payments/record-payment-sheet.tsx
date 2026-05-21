@@ -299,7 +299,7 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
             >
               {!isOnline && (
                 <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 12, color: '#D97706', textAlign: 'center', marginBottom: 8 }}>
-                  You're offline. Connect to record a payment.
+                  You&apos;re offline. Connect to record a payment.
                 </Text>
               )}
               <TouchableOpacity

@@ -117,7 +117,7 @@ export const AddCreditSheet = forwardRef<BottomSheet, Props>(
           {/* Submit button */}
           {!isOnline && (
             <Text style={{ fontSize: 12, color: '#D97706', textAlign: 'center', marginBottom: 8, fontFamily: 'Geist_400Regular' }}>
-              You're offline. Connect to record a credit.
+              You&apos;re offline. Connect to record a credit.
             </Text>
           )}
           <TouchableOpacity

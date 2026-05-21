@@ -1,4 +1,4 @@
-import { Clock3, ShieldCheck, WifiOff } from 'lucide-react-native';
+import { Clock3, RefreshCw, ShieldCheck, WifiOff } from 'lucide-react-native';
 import type { CreditStatus, CreditSyncStatus } from '@/features/credits/credit.types';
 
 export const statusStyles: Record<CreditStatus, { label: string; bg: string; color: string }> = {
@@ -10,9 +10,11 @@ export const statusStyles: Record<CreditStatus, { label: string; bg: string; col
 };
 
 export const syncStyles: Record<CreditSyncStatus, { label: string; color: string; Icon: typeof Clock3 }> = {
-  pending: { label: 'Sync pending', color: '#D97706', Icon: Clock3 },
-  synced: { label: 'On-chain synced', color: '#16A34A', Icon: ShieldCheck },
-  failed: { label: 'Sync failed', color: '#DC2626', Icon: WifiOff },
+  local:   { label: 'Local only',      color: '#6B7280', Icon: Clock3 },
+  pending: { label: 'Sync pending',    color: '#D97706', Icon: Clock3 },
+  syncing: { label: 'Syncing...',      color: '#2563EB', Icon: RefreshCw },
+  synced:  { label: 'On-chain synced', color: '#16A34A', Icon: ShieldCheck },
+  failed:  { label: 'Sync failed',     color: '#DC2626', Icon: WifiOff },
 };
 
 export function parsePesoAmount(value: string): number {

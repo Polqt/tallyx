@@ -1,0 +1,14 @@
+name: Publish OTA Update
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update:
+    name: Publish EAS Update
+    type: update
+    params:
+      channel: production
+      message: ${{ github.commit_message }}

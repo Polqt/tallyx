@@ -69,7 +69,7 @@ export const AddCustomerSheet = forwardRef<BottomSheet, AddCustomerSheetProps>(
           <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
             {!isOnline && (
               <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 12, color: '#D97706', textAlign: 'center', marginBottom: 8 }}>
-                You're offline. Connect to create a customer.
+                You&apos;re offline. Connect to create a customer.
               </Text>
             )}
             <TouchableOpacity
