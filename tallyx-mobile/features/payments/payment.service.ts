@@ -33,9 +33,17 @@ export function fetchPayment(token: string, id: string, signal?: AbortSignal) {
   return apiRequest<PaymentItem>(`/payments/${encodeURIComponent(id)}`, token, { signal });
 }
 
+function generateIdempotencyKey(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function recordPayment(token: string, input: RecordPaymentInput) {
+  const body: RecordPaymentInput = {
+    ...input,
+    idempotencyKey: input.idempotencyKey ?? generateIdempotencyKey(),
+  };
   return apiRequest<PaymentItem>('/payments', token, {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: JSON.stringify(body),
   });
 }
