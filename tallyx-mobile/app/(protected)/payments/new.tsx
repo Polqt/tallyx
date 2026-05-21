@@ -62,9 +62,7 @@ export default function NewPayment() {
 
   const handleScanSuccess = async (customerId: string) => {
     setQrScannerVisible(false);
-    if (!token) {
-      return;
-    }
+    if (!token || loading) return;
     setLoading(true);
     try {
       const detail = await fetchCustomerDetail(token!, customerId);

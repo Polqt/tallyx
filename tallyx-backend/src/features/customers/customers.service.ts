@@ -1,4 +1,4 @@
-import { and, count, desc, eq, ilike, inArray, or, sum } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, max, or, sql, sum } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db } from "../../db/client.js";
 import { credits, customers, payments, stores } from "../../db/schema.js";
@@ -63,32 +63,31 @@ export async function getCustomersForUser(userId: string, query: ListCustomersQu
   const total = totalRows[0]?.total ?? 0;
   const customerIds = customerRows.map((customer) => customer.id);
 
-  const creditRows = customerIds.length
+  // Aggregate balance and last transaction date in SQL — avoids loading every
+  // credit row into memory when a customer has many credits.
+  const creditAggRows = customerIds.length
     ? await db
-        .select()
+        .select({
+          customerId: credits.customerId,
+          balance: sum(credits.balance),
+          lastTransactionDate: max(credits.createdAt),
+        })
         .from(credits)
         .where(and(eq(credits.storeId, storeId), inArray(credits.customerId, customerIds)))
+        .groupBy(credits.customerId)
     : [];
 
-  const creditsByCustomerId = new Map<string, typeof creditRows>();
-  for (const credit of creditRows) {
-    const customerCredits = creditsByCustomerId.get(credit.customerId) ?? [];
-    customerCredits.push(credit);
-    creditsByCustomerId.set(credit.customerId, customerCredits);
-  }
+  const creditAggByCustomerId = new Map(
+    creditAggRows.map((row) => [row.customerId, row])
+  );
 
   const items = customerRows.map((customer) => {
-    const customerCredits = (creditsByCustomerId.get(customer.id) ?? []).sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-    );
-    const balance = customerCredits.reduce((sum, credit) => sum + toNumber(credit.balance), 0);
-    const lastCredit = customerCredits[0];
-
+    const agg = creditAggByCustomerId.get(customer.id);
     return {
       ...customer,
       qrIdentity: toQrIdentity(customer.id, customer.storeId),
-      balance,
-      lastTransactionDate: lastCredit?.createdAt.toISOString() ?? null,
+      balance: toNumber(agg?.balance),
+      lastTransactionDate: agg?.lastTransactionDate?.toISOString() ?? null,
     };
   });
 
@@ -127,6 +126,7 @@ export async function getCustomerForUser(userId: string, id: string) {
         .from(payments)
         .where(inArray(payments.creditId, creditIds))
         .orderBy(desc(payments.createdAt))
+        .limit(50)
     : [];
 
   const totalCredit = customerCredits.reduce((sum, credit) => sum + toNumber(credit.amount), 0);
@@ -161,58 +161,54 @@ export async function getCustomerForUser(userId: string, id: string) {
 
 export async function updateCustomerForUser(userId: string, customerId: string, input: UpdateCustomerInput) {
   const storeId = await getStoreIdForUser(userId);
-  const [customer] = await db
-    .select()
-    .from(customers)
-    .where(and(eq(customers.id, customerId), eq(customers.storeId, storeId)))
-    .limit(1);
 
-  if (!customer) throw new AppError("Customer not found", 404);
-
-  await db
+  const [updated] = await db
     .update(customers)
     .set({
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.phone !== undefined ? { phone: input.phone ?? null } : {}),
+      ...(input.email !== undefined ? { email: input.email ?? null } : {}),
       updatedAt: new Date(),
     })
-    .where(eq(customers.id, customerId));
+    .where(and(eq(customers.id, customerId), eq(customers.storeId, storeId)))
+    .returning();
 
-  return getCustomerForUser(userId, customerId);
+  if (!updated) throw new AppError("Customer not found", 404);
+
+  return {
+    ...updated,
+    qrIdentity: toQrIdentity(updated.id, updated.storeId),
+    balance: 0,
+    lastTransactionDate: null,
+  };
 }
 
 export async function deleteCustomerForUser(userId: string, customerId: string) {
   const storeId = await getStoreIdForUser(userId);
 
-  const [customer] = await db
-    .select()
-    .from(customers)
-    .where(and(eq(customers.id, customerId), eq(customers.storeId, storeId)))
-    .limit(1);
-
-  if (!customer) throw new AppError("Customer not found", 404);
-
-  const [balanceRow] = await db
-    .select({ total: sum(credits.balance) })
-    .from(credits)
-    .where(and(eq(credits.customerId, customerId), eq(credits.storeId, storeId)));
-
-  const outstandingBalance = Number(balanceRow?.total ?? 0);
-  if (outstandingBalance > 0) {
-    throw new AppError("Cannot delete a customer with an outstanding balance. Settle all credits first.", 400);
-  }
-
   await db.transaction(async (tx) => {
-    const customerCredits = await tx
-      .select({ id: credits.id })
+    // Lock the customer row first so concurrent payments can't sneak in
+    // between the balance check and the delete.
+    await tx.execute(sql`SELECT id FROM customers WHERE id = ${customerId} FOR UPDATE`);
+
+    const [customer] = await tx
+      .select()
+      .from(customers)
+      .where(and(eq(customers.id, customerId), eq(customers.storeId, storeId)))
+      .limit(1);
+
+    if (!customer) throw new AppError("Customer not found", 404);
+
+    const [creditCountRow] = await tx
+      .select({ total: count() })
       .from(credits)
       .where(and(eq(credits.customerId, customerId), eq(credits.storeId, storeId)));
 
-    const creditIds = customerCredits.map((c) => c.id);
-
-    if (creditIds.length > 0) {
-      await tx.delete(payments).where(inArray(payments.creditId, creditIds));
-      await tx.delete(credits).where(inArray(credits.id, creditIds));
+    if ((creditCountRow?.total ?? 0) > 0) {
+      throw new AppError(
+        "Cannot delete a customer who has credit history. Void or settle all credits first.",
+        400
+      );
     }
 
     await tx.delete(customers).where(eq(customers.id, customerId));
@@ -228,6 +224,7 @@ export async function createCustomerForUser(userId: string, input: CreateCustome
       storeId,
       name: input.name,
       phone: input.phone ?? null,
+      email: input.email ?? null,
     })
     .returning();
 

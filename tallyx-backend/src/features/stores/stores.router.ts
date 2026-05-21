@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { createStoreSchema, dashboardQuerySchema } from "./stores.schema.js";
+import { createStoreSchema, updateStoreSchema, dashboardQuerySchema } from "./stores.schema.js";
 import { saveStore, getDashboardSummary, getStore } from "./stores.service.js";
 import { authenticate } from "../../middleware/authenticate.js";
 
@@ -18,10 +18,14 @@ storesRouter.get("/dashboard", async (req: Request, res: Response, next: NextFun
   }
 });
 
-// POST /stores
+// POST /stores — creates or updates the authenticated user's store.
+// On creation, storeName is required. On update, all fields are optional.
+// The Stellar public key is never cleared by omitting it.
 storesRouter.post("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const input = createStoreSchema.parse(req.body);
+    const existing = await getStore(req.user!.id).catch(() => null);
+    const schema = existing ? updateStoreSchema : createStoreSchema;
+    const input = schema.parse(req.body);
     const result = await saveStore(req.user!.id, input);
     res.status(result.created ? 201 : 200).json(result);
   } catch (err) {

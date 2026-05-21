@@ -68,6 +68,12 @@ export default function Customers() {
     const authToken = token;
     const controller = new AbortController();
 
+    // Reset list state immediately so stale results from the previous query
+    // are never shown while the new request is in-flight.
+    setCustomers([]);
+    setPage(1);
+    setHasMore(false);
+
     async function loadCustomers() {
       setLoading(true);
       setLoadError(null);

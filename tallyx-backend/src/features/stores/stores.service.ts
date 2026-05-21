@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "../../db/client.js";
 import { credits, customers, payments, stores } from "../../db/schema.js";
 import { AppError } from "../../middleware/errorHandler.js";
-import type { CreateStoreInput, DashboardQuery } from "./stores.schema.js";
+import type { CreateStoreInput, UpdateStoreInput, DashboardQuery } from "./stores.schema.js";
 
 function getPeriodStart(period: DashboardQuery["period"]): Date | null {
   const now = new Date();
@@ -21,7 +21,7 @@ function getPeriodStart(period: DashboardQuery["period"]): Date | null {
   return null;
 }
 
-export async function saveStore(userId: string, input: CreateStoreInput) {
+export async function saveStore(userId: string, input: CreateStoreInput | UpdateStoreInput) {
   const [existingStore] = await db
     .select()
     .from(stores)
@@ -32,9 +32,10 @@ export async function saveStore(userId: string, input: CreateStoreInput) {
     const [store] = await db
       .update(stores)
       .set({
-        storeName: input.storeName,
-        phoneNumber: input.phoneNumber ?? null,
-        stellarPublicKey: input.stellarPublicKey ?? existingStore.stellarPublicKey,
+        ...(input.storeName !== undefined ? { storeName: input.storeName } : {}),
+        ...(input.phoneNumber !== undefined ? { phoneNumber: input.phoneNumber ?? null } : {}),
+        // Never clear an existing Stellar key by omitting it — only update when explicitly provided.
+        ...(input.stellarPublicKey ? { stellarPublicKey: input.stellarPublicKey } : {}),
         updatedAt: new Date(),
       })
       .where(eq(stores.id, existingStore.id))
@@ -48,7 +49,7 @@ export async function saveStore(userId: string, input: CreateStoreInput) {
     .values({
       id: randomUUID(),
       userId,
-      storeName: input.storeName,
+      storeName: (input as CreateStoreInput).storeName,
       phoneNumber: input.phoneNumber ?? null,
       stellarPublicKey: input.stellarPublicKey ?? null,
     })

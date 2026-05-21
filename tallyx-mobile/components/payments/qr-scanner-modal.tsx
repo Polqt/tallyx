@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { Alert, Modal, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { X, ShieldAlert, Sparkles } from 'lucide-react-native';
 import { haptics } from '@/utils/haptics';
@@ -32,8 +32,10 @@ export function QrScannerModal({ visible, onClose, onScanSuccess }: Props) {
     if (parsed) {
       onScanSuccess(parsed.customerId);
     } else {
-      // Fallback: if the QR contains only a customer ID, use it directly.
-      onScanSuccess(data);
+      // Unknown QR format — reset so the user can try again.
+      setScanned(false);
+      haptics.error();
+      Alert.alert('Invalid QR Code', 'This QR code is not a Tallyx customer identity. Please scan a valid customer QR.');
     }
   };
 
