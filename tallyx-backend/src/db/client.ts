@@ -3,10 +3,10 @@ import { Pool } from "pg";
 import * as schema from "./schema.js";
 
 const isProduction = process.env.NODE_ENV === "production";
-// In production, always enforce TLS certificate verification regardless of env vars.
-// The escape hatch only applies in non-production environments (e.g. local dev with self-signed certs).
+// Railway's managed Postgres uses self-signed certs internally, so we allow
+// overriding rejectUnauthorized via env var even in production.
 const sslConfig = isProduction
-  ? { rejectUnauthorized: true }
+  ? { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false" }
   : process.env.DB_SSL_REJECT_UNAUTHORIZED === "false"
     ? { rejectUnauthorized: false }
     : false;
