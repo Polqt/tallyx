@@ -46,7 +46,7 @@ export default function PaymentDetailScreen() {
   const isUsdc = payment?.paymentMethod === 'usdc';
   const amountText = payment
     ? isUsdc
-      ? `${Number(payment.amount)} USDC`
+      ? `${Number(payment.amount).toFixed(2)} USDC`
       : formatPeso(Number(payment.amount))
     : '';
   const avatarColor = payment ? getCustomerAvatarColor(payment.customer.name) : '#16A34A';
