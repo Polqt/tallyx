@@ -114,7 +114,7 @@ export default function PaymentDetailScreen() {
 
           {/* Customer */}
           <View style={{ marginHorizontal: 20, marginBottom: 10 }}>
-            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FFFFFF', padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
               <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: avatarColor, alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 18, color: '#FFFFFF' }}>{initials}</Text>
               </View>
@@ -127,7 +127,7 @@ export default function PaymentDetailScreen() {
 
           {/* Credit info */}
           <View style={{ marginHorizontal: 20, marginBottom: 10 }}>
-            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', padding: 16 }}>
+            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FFFFFF', padding: 16 }}>
               <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Applied to Credit</Text>
               <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
                 <View style={{ flex: 1 }}>
@@ -159,7 +159,7 @@ export default function PaymentDetailScreen() {
 
           {/* Receipt ID */}
           <View style={{ marginHorizontal: 20, marginBottom: 10 }}>
-            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', padding: 16 }}>
+            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FFFFFF', padding: 16 }}>
               <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Receipt ID</Text>
               <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', letterSpacing: 0.5 }}>
                 {payment.id.slice(0, 8).toUpperCase()}
@@ -169,7 +169,7 @@ export default function PaymentDetailScreen() {
 
           {/* Blockchain */}
           <View style={{ marginHorizontal: 20, marginBottom: 10 }}>
-            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', padding: 16 }}>
+            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FFFFFF', padding: 16 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Shield size={13} color="#9CA3AF" strokeWidth={2} />

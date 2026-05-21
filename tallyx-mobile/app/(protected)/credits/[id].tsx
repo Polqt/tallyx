@@ -272,18 +272,18 @@ export default function CreditDetailScreen() {
           )}
 
           <View style={{ marginHorizontal: 20, marginBottom: 12 }}>
-            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 20, paddingVertical: 18 }}>
+            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FFFFFF', paddingHorizontal: 20, paddingVertical: 18 }}>
               <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Customer</Text>
               <Text style={{ fontSize: 17, fontWeight: '700', color: '#111827' }}>{credit.customerName ?? '—'}</Text>
             </View>
           </View>
 
           <View style={{ marginHorizontal: 20, marginBottom: 12, flexDirection: 'row', gap: 10 }}>
-            <View style={{ flex: 1, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 16, paddingVertical: 18 }}>
+            <View style={{ flex: 1, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingVertical: 18 }}>
               <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Recorded</Text>
               <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{formatDashboardDate(credit.createdAt)}</Text>
             </View>
-            <View style={{ flex: 1, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 16, paddingVertical: 18 }}>
+            <View style={{ flex: 1, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingVertical: 18 }}>
               <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Due Date</Text>
               <Text style={{ fontSize: 14, fontWeight: '600', color: credit.status === 'overdue' ? '#DC2626' : '#111827' }}>
                 {credit.dueDate ? formatDashboardDate(credit.dueDate) : 'None'}
@@ -293,7 +293,7 @@ export default function CreditDetailScreen() {
 
           {credit.note ? (
             <View style={{ marginHorizontal: 20, marginBottom: 12 }}>
-              <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 20, paddingVertical: 18 }}>
+              <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FFFFFF', paddingHorizontal: 20, paddingVertical: 18 }}>
                 <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Note</Text>
                 <Text style={{ fontSize: 14, color: '#374151', lineHeight: 22 }}>{credit.note}</Text>
               </View>
@@ -301,7 +301,7 @@ export default function CreditDetailScreen() {
           ) : null}
 
           <View style={{ marginHorizontal: 20, marginBottom: 12 }}>
-            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FAFAFA', paddingHorizontal: 20, paddingVertical: 18 }}>
+            <View style={{ borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6', backgroundColor: '#FFFFFF', paddingHorizontal: 20, paddingVertical: 18 }}>
               <Text style={{ fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Blockchain</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <SyncIcon size={15} color={sync.color} strokeWidth={2.2} />

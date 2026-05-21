@@ -1,4 +1,4 @@
-import { TouchableOpacity, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Coins } from 'lucide-react-native';
 import type { PaymentItem } from '@/features/payments/payment.types';
@@ -21,15 +21,15 @@ export function PaymentListRow({ item }: { item: PaymentItem }) {
   }
 
   return (
-    <TouchableOpacity onPress={handlePress} activeOpacity={0.75}>
+    <Pressable onPress={handlePress} style={{ marginBottom: 10 }}>
+      {({ pressed }) => (
       <View style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: pressed ? '#F9FAFB' : '#FFFFFF',
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: '#F3F4F6',
+        borderColor: pressed ? '#E5E7EB' : '#F3F4F6',
         paddingHorizontal: 16,
         paddingVertical: 14,
-        marginBottom: 10,
         flexDirection: 'row',
         alignItems: 'center',
         shadowColor: '#000',
@@ -83,6 +83,7 @@ export function PaymentListRow({ item }: { item: PaymentItem }) {
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+      )}
+    </Pressable>
   );
 }

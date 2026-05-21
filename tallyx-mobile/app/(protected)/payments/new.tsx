@@ -127,10 +127,10 @@ export default function NewPayment() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1, backgroundColor: '#FFFFFF' }}
     >
-
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: insets.bottom + 40 }}
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingTop: 24, paddingBottom: insets.bottom + 40, backgroundColor: '#FFFFFF' }}
+        style={{ flex: 1, backgroundColor: '#FFFFFF' }}
       >
         {/* Step 1: Select Customer */}
         <Text style={{ fontFamily: 'Geist_600SemiBold', fontSize: 13, color: '#4B5563', textTransform: 'uppercase', letterSpacing: 1.1, marginBottom: 8 }}>
