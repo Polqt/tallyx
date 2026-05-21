@@ -50,6 +50,17 @@ function getConfig() {
   return { secretKey, contractId, rpcUrl, networkPassphrase };
 }
 
+const STELLAR_TIMEOUT_MS = 30_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new AppError(`Stellar RPC timed out: ${label}`, 504)), ms)
+    ),
+  ]);
+}
+
 async function submitContractCall(
   method: string,
   args: xdr.ScVal[],
@@ -60,7 +71,11 @@ async function submitContractCall(
   const server = new rpc.Server(rpcUrl);
   const contract = new Contract(contractId);
 
-  const account = await server.getAccount(keypair.publicKey());
+  const account = await withTimeout(
+    server.getAccount(keypair.publicKey()),
+    STELLAR_TIMEOUT_MS,
+    "getAccount",
+  );
 
   const tx = new TransactionBuilder(account, {
     fee: BASE_FEE,
@@ -70,7 +85,11 @@ async function submitContractCall(
     .setTimeout(30)
     .build();
 
-  const simResult = await server.simulateTransaction(tx);
+  const simResult = await withTimeout(
+    server.simulateTransaction(tx),
+    STELLAR_TIMEOUT_MS,
+    "simulateTransaction",
+  );
 
   if (rpc.Api.isSimulationError(simResult)) {
     throw new AppError(`Soroban simulation failed: ${simResult.error}`, 500);
@@ -79,18 +98,22 @@ async function submitContractCall(
   const preparedTx = rpc.assembleTransaction(tx, simResult).build();
   preparedTx.sign(keypair);
 
-  const sendResult = await server.sendTransaction(preparedTx);
+  const sendResult = await withTimeout(
+    server.sendTransaction(preparedTx),
+    STELLAR_TIMEOUT_MS,
+    "sendTransaction",
+  );
   if (sendResult.status === "ERROR") {
     throw new AppError(`Soroban submission failed: ${JSON.stringify(sendResult.errorResult)}`, 500);
   }
 
   const txHash = sendResult.hash;
 
-  // Poll for confirmation (up to ~15s)
-  let getResult = await server.getTransaction(txHash);
+  // Poll for confirmation (up to ~15s, each poll individually timeout-guarded)
+  let getResult = await withTimeout(server.getTransaction(txHash), STELLAR_TIMEOUT_MS, "getTransaction");
   for (let i = 0; i < 15 && getResult.status === rpc.Api.GetTransactionStatus.NOT_FOUND; i++) {
     await new Promise((r) => setTimeout(r, 1000));
-    getResult = await server.getTransaction(txHash);
+    getResult = await withTimeout(server.getTransaction(txHash), STELLAR_TIMEOUT_MS, "getTransaction");
   }
 
   if (getResult.status !== rpc.Api.GetTransactionStatus.SUCCESS) {

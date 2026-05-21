@@ -49,8 +49,8 @@ export default function Payments() {
     if (showLoading) setLoading(true);
     setError(null);
     try {
-      const data = await fetchPayments(token!, signal);
-      setPayments(data);
+      const data = await fetchPayments(token, undefined, signal);
+      setPayments(data.items);
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;
       setError(err instanceof Error ? err.message : 'Unable to load payment history.');

@@ -8,6 +8,7 @@ import {
   getCreditForUser,
   getCreditsForUser,
   payCreditForUser,
+  retrySyncCreditForUser,
   unvoidCreditForUser,
   updateCreditForUser,
   voidCreditForUser,
@@ -54,6 +55,16 @@ creditRouter.patch("/:id/pay", async (req: Request, res: Response, next: NextFun
   try {
     const input = payCreditSchema.parse(req.body);
     const data = await payCreditForUser(req.user!.id, req.params.id as string, input);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /credits/:id/retry-sync
+creditRouter.post("/:id/retry-sync", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await retrySyncCreditForUser(req.user!.id, req.params.id as string);
     res.json(data);
   } catch (err) {
     next(err);

@@ -69,7 +69,7 @@ export async function getCustomersForUser(userId: string, query: ListCustomersQu
     ? await db
         .select({
           customerId: credits.customerId,
-          balance: sum(credits.balance),
+          balance: sql<string>`sum(${credits.balance}::numeric)`,
           lastTransactionDate: max(credits.createdAt),
         })
         .from(credits)

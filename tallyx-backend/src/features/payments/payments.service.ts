@@ -1,11 +1,11 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, lt, sql } from "drizzle-orm";
 import { auditLog } from "../../middleware/audit.js";
 import { randomUUID } from "crypto";
 import { db } from "../../db/client.js";
 import { payments, credits, customers, stores } from "../../db/schema.js";
 import { AppError } from "../../middleware/errorHandler.js";
 import { recordPaymentOnChain } from "../stellar/stellar.service.js";
-import type { RecordPaymentInput } from "./payments.schema.js";
+import type { RecordPaymentInput, ListPaymentsQuery } from "./payments.schema.js";
 
 async function getStoreIdForUser(userId: string) {
   const [store] = await db
@@ -70,10 +70,14 @@ export async function getPaymentForUser(userId: string, paymentId: string) {
   return row;
 }
 
-export async function getPaymentsForUser(userId: string) {
+export async function getPaymentsForUser(userId: string, query: ListPaymentsQuery) {
   const storeId = await getStoreIdForUser(userId);
 
-  return db
+  const cursorCondition = query.cursor
+    ? lt(payments.createdAt, new Date(query.cursor))
+    : undefined;
+
+  const rows = await db
     .select({
       id: payments.id,
       creditId: payments.creditId,
@@ -96,8 +100,15 @@ export async function getPaymentsForUser(userId: string) {
     .from(payments)
     .innerJoin(credits, eq(payments.creditId, credits.id))
     .innerJoin(customers, eq(credits.customerId, customers.id))
-    .where(eq(credits.storeId, storeId))
-    .orderBy(desc(payments.createdAt));
+    .where(and(eq(credits.storeId, storeId), cursorCondition))
+    .orderBy(desc(payments.createdAt))
+    .limit(query.limit + 1);
+
+  const hasMore = rows.length > query.limit;
+  const items = hasMore ? rows.slice(0, query.limit) : rows;
+  const nextCursor = hasMore ? items[items.length - 1].createdAt.toISOString() : null;
+
+  return { items, hasMore, nextCursor };
 }
 
 export async function createPaymentForUser(userId: string, input: RecordPaymentInput) {
@@ -227,4 +238,45 @@ export async function createPaymentForUser(userId: string, input: RecordPaymentI
     }
     throw err;
   }
+}
+
+export async function retrySyncPaymentForUser(userId: string, paymentId: string) {
+  const storeId = await getStoreIdForUser(userId);
+
+  const [row] = await db
+    .select({
+      payment: payments,
+      credit: credits,
+    })
+    .from(payments)
+    .innerJoin(credits, eq(payments.creditId, credits.id))
+    .where(and(eq(payments.id, paymentId), eq(credits.storeId, storeId)))
+    .limit(1);
+
+  if (!row) throw new AppError("Payment not found", 404);
+  if (row.payment.syncStatus !== "failed") throw new AppError("Payment sync has not failed — no retry needed", 400);
+  if (!row.credit.onChainCreditId) throw new AppError("Cannot retry sync: credit was never synced to chain", 400);
+
+  let txHash: string | null = null;
+  let syncStatus: "synced" | "failed" = "failed";
+
+  try {
+    const result = await recordPaymentOnChain({
+      onChainCreditId: row.credit.onChainCreditId,
+      amount: Number(row.payment.amount),
+    });
+    txHash = result.txHash;
+    syncStatus = "synced";
+  } catch (err) {
+    console.error("[Stellar] retrySyncPayment failed:", err);
+  }
+
+  const [updated] = await db
+    .update(payments)
+    .set({ syncStatus, stellarTxHash: txHash ?? row.payment.stellarTxHash })
+    .where(eq(payments.id, paymentId))
+    .returning();
+
+  auditLog("payment.sync_retried", { paymentId, storeId, userId, syncStatus });
+  return updated;
 }

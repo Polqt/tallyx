@@ -214,19 +214,24 @@ export async function voidCreditForUser(userId: string, id: string) {
 
 export async function unvoidCreditForUser(userId: string, id: string) {
   const storeId = await getStoreIdForUser(userId);
-  const [credit] = await db
-    .select()
-    .from(credits)
-    .where(and(eq(credits.id, id), eq(credits.storeId, storeId)))
-    .limit(1);
-  if (!credit) throw new AppError("Credit not found", 404);
-  if (credit.status !== "voided") throw new AppError("Credit is not voided", 400);
 
-  const [updated] = await db
-    .update(credits)
-    .set({ status: "pending", balance: credit.amount, updatedAt: new Date() })
-    .where(eq(credits.id, id))
-    .returning();
+  const [updated] = await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT id FROM credits WHERE id = ${id} FOR UPDATE`);
+
+    const [credit] = await tx
+      .select()
+      .from(credits)
+      .where(and(eq(credits.id, id), eq(credits.storeId, storeId)))
+      .limit(1);
+    if (!credit) throw new AppError("Credit not found", 404);
+    if (credit.status !== "voided") throw new AppError("Credit is not voided", 400);
+
+    return tx
+      .update(credits)
+      .set({ status: "pending", balance: credit.amount, updatedAt: new Date() })
+      .where(eq(credits.id, id))
+      .returning();
+  });
 
   auditLog("credit.unvoided", { creditId: id, storeId, userId });
   const customerNames = await getCustomerNames(storeId, [updated.customerId]);
@@ -295,4 +300,47 @@ export async function deleteCreditForUser(userId: string, id: string) {
 // This endpoint only updates credit balance/status — it skips payment recording entirely.
 export async function payCreditForUser(_userId: string, _id: string, _input: PayCreditInput): Promise<never> {
   throw new AppError("Use POST /payments to record a payment.", 400);
+}
+
+export async function retrySyncCreditForUser(userId: string, id: string) {
+  const storeId = await getStoreIdForUser(userId);
+
+  const [credit] = await db
+    .select()
+    .from(credits)
+    .where(and(eq(credits.id, id), eq(credits.storeId, storeId)))
+    .limit(1);
+
+  if (!credit) throw new AppError("Credit not found", 404);
+  if (credit.syncStatus !== "failed") throw new AppError("Credit sync has not failed — no retry needed", 400);
+
+  let txHash: string | null = null;
+  let onChainCreditId: bigint | null = null;
+  let syncStatus: "synced" | "failed" = "failed";
+
+  try {
+    const dueDate = credit.dueDate ? Math.floor(credit.dueDate.getTime() / 1000) : undefined;
+    const result = await createCreditOnChain({
+      creditId: credit.id,
+      customerId: credit.customerId,
+      storeId,
+      amount: Number(credit.amount),
+      dueDateUnix: dueDate,
+    });
+    txHash = result.txHash;
+    onChainCreditId = result.onChainCreditId ?? null;
+    syncStatus = "synced";
+  } catch (err) {
+    console.error("[Stellar] retrySyncCredit failed:", err);
+  }
+
+  const [updated] = await db
+    .update(credits)
+    .set({ syncStatus, stellarTxHash: txHash ?? credit.stellarTxHash, onChainCreditId: onChainCreditId ?? credit.onChainCreditId, updatedAt: new Date() })
+    .where(eq(credits.id, id))
+    .returning();
+
+  auditLog("credit.sync_retried", { creditId: id, storeId, userId, syncStatus });
+  const customerNames = await getCustomerNames(storeId, [updated.customerId]);
+  return toCreditResponse(updated, customerNames.get(updated.customerId));
 }

@@ -1,12 +1,13 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { authenticate } from "../../middleware/authenticate.js";
 import { writeLimiter } from "../../middleware/rateLimiters.js";
-import { recordPaymentSchema } from "./payments.schema.js";
+import { recordPaymentSchema, listPaymentsQuerySchema } from "./payments.schema.js";
 import {
   getPaymentForUser,
   getPaymentsByCreditId,
   getPaymentsForUser,
   createPaymentForUser,
+  retrySyncPaymentForUser,
 } from "./payments.service.js";
 
 export const paymentRouter = Router();
@@ -18,7 +19,8 @@ paymentRouter.use(authenticate);
 // Retrieves the global transaction history of payments for the authenticated user's store
 paymentRouter.get("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await getPaymentsForUser(req.user!.id);
+    const query = listPaymentsQuerySchema.parse(req.query);
+    const data = await getPaymentsForUser(req.user!.id, query);
     res.json(data);
   } catch (err) {
     next(err);
@@ -41,6 +43,16 @@ paymentRouter.post("/", writeLimiter, async (req: Request, res: Response, next: 
 paymentRouter.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await getPaymentForUser(req.user!.id, req.params.id as string);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /payments/:id/retry-sync
+paymentRouter.post("/:id/retry-sync", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await retrySyncPaymentForUser(req.user!.id, req.params.id as string);
     res.json(data);
   } catch (err) {
     next(err);

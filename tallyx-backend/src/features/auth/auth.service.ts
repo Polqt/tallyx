@@ -7,11 +7,12 @@ import { users, stores } from "../../db/schema.js";
 import { AppError } from "../../middleware/errorHandler.js";
 import type { RegisterInput, LoginInput } from "./auth.schema.js";
 
-const JWT_SECRET = process.env.JWT_SECRET as string;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? "24h";
 
 function signToken(userId: string): string {
-  return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions);
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new AppError("JWT_SECRET is not configured", 500);
+  return jwt.sign({ id: userId }, secret, { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions);
 }
 
 async function safeUser(user: typeof users.$inferSelect) {
@@ -21,10 +22,12 @@ async function safeUser(user: typeof users.$inferSelect) {
 }
 
 export async function register(input: RegisterInput) {
+  const email = input.email.toLowerCase().trim();
+
   const existing = await db
     .select()
     .from(users)
-    .where(eq(users.email, input.email))
+    .where(eq(users.email, email))
     .limit(1);
 
   if (existing.length > 0) throw new AppError("Email already registered", 409);
@@ -36,20 +39,24 @@ export async function register(input: RegisterInput) {
     .values({
       id: randomUUID(),
       ownerName: input.ownerName,
-      email: input.email,
+      email,
       passwordHash,
     })
     .returning();
+
+  if (!user) throw new AppError("Registration failed", 500);
 
   const token = signToken(user.id);
   return { token, user: await safeUser(user) };
 }
 
 export async function login(input: LoginInput) {
+  const email = input.email.toLowerCase().trim();
+
   const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.email, input.email))
+    .where(eq(users.email, email))
     .limit(1);
 
   if (!user) throw new AppError("Invalid credentials", 401);

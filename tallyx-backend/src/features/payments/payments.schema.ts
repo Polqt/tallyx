@@ -8,4 +8,10 @@ export const recordPaymentSchema = z.object({
   idempotencyKey: z.string().max(128).optional(),
 });
 
+export const listPaymentsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  cursor: z.string().datetime().optional(),
+});
+
 export type RecordPaymentInput = z.infer<typeof recordPaymentSchema>;
+export type ListPaymentsQuery = z.infer<typeof listPaymentsQuerySchema>;

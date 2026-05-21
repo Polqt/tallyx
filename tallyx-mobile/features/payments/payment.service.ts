@@ -1,8 +1,16 @@
 import type { PaymentItem, RecordPaymentInput } from './payment.types';
 import { apiRequest } from '@/utils/api-client';
 
-export function fetchPayments(token: string, signal?: AbortSignal) {
-  return apiRequest<PaymentItem[]>('/payments', token, { signal });
+export interface PaymentsPage {
+  items: PaymentItem[];
+  hasMore: boolean;
+  nextCursor: string | null;
+}
+
+export function fetchPayments(token: string, cursor?: string, signal?: AbortSignal) {
+  const params = new URLSearchParams({ limit: '50' });
+  if (cursor) params.set('cursor', cursor);
+  return apiRequest<PaymentsPage>(`/payments?${params}`, token, { signal });
 }
 
 export function fetchPayment(token: string, id: string, signal?: AbortSignal) {
