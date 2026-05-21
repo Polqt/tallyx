@@ -68,13 +68,15 @@ export async function getDashboardSummary(userId: string, query: DashboardQuery 
   const { store } = await getStore(userId);
   const periodStart = getPeriodStart(query.period);
 
+  const storeCondition = eq(credits.storeId, store.id);
+
   const creditWhere = periodStart
-    ? and(eq(credits.storeId, store.id), gte(credits.createdAt, periodStart))
-    : eq(credits.storeId, store.id);
+    ? and(storeCondition, gte(credits.createdAt, periodStart))
+    : storeCondition;
 
   const paymentWhere = periodStart
-    ? and(eq(credits.storeId, store.id), gte(payments.createdAt, periodStart))
-    : eq(credits.storeId, store.id);
+    ? and(storeCondition, gte(payments.createdAt, periodStart))
+    : storeCondition;
 
   const [customerRows, creditRows, paymentRows] = await Promise.all([
     db.select().from(customers).where(eq(customers.storeId, store.id)).limit(500),
