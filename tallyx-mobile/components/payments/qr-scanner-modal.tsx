@@ -65,9 +65,15 @@ export function QrScannerModal({ visible, onClose, onScanSuccess }: Props) {
             <Text style={styles.permissionDesc}>
               Tallyx needs access to your camera to scan customer QR identity cards instantly.
             </Text>
-            <TouchableOpacity onPress={requestPermission} activeOpacity={0.8} style={styles.grantButton}>
-              <Text style={styles.grantButtonText}>Grant Camera Access</Text>
-            </TouchableOpacity>
+            {permission.canAskAgain ? (
+              <TouchableOpacity onPress={requestPermission} activeOpacity={0.8} style={styles.grantButton}>
+                <Text style={styles.grantButtonText}>Grant Camera Access</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.deniedText}>
+                Camera access was denied. Please enable it in your device Settings to use QR scanning.
+              </Text>
+            )}
           </View>
         ) : (
           <View style={styles.cameraContainer}>
@@ -203,6 +209,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Geist_600SemiBold',
     fontSize: 14,
     color: '#FFFFFF',
+  },
+  deniedText: {
+    fontFamily: 'Geist_400Regular',
+    fontSize: 13,
+    color: '#D97706',
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 8,
   },
   cameraContainer: {
     flex: 1,

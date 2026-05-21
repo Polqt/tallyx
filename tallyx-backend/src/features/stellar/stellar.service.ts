@@ -115,6 +115,9 @@ export async function createCreditOnChain(
 
   const dueDateUnix = input.dueDateUnix ?? 0;
 
+  if (input.amount < 0) throw new AppError("Credit amount must be non-negative", 400);
+  if (dueDateUnix < 0) throw new AppError("Due date must be a valid future timestamp", 400);
+
   const args: xdr.ScVal[] = [
     storeOwnerAddress.toScVal(),
     nativeToScVal(input.storeId, { type: "string" }),
@@ -125,7 +128,13 @@ export async function createCreditOnChain(
 
   const { txHash, returnValue } = await submitContractCall("create_credit", args);
 
-  // Contract returns the new credit_id as u64 — convert to BigInt to avoid Number precision loss
+  // Contract returns the new credit_id as u64 — validate the type before accessing.
+  if (returnValue.switch() !== xdr.ScValType.scvU64()) {
+    throw new AppError(
+      `Unexpected return type from create_credit: ${returnValue.switch().name}`,
+      500,
+    );
+  }
   const onChainCreditId = returnValue.u64().toBigInt();
 
   return { txHash, onChainCreditId };

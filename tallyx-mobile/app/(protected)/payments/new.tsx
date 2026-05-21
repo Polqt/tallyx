@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -33,6 +33,8 @@ export default function NewPayment() {
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<'cash' | 'usdc'>('cash');
   const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(false);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   // Modal Visibility State
   const [customerModalVisible, setCustomerModalVisible] = useState(false);
@@ -62,10 +64,17 @@ export default function NewPayment() {
 
   const handleScanSuccess = async (customerId: string) => {
     setQrScannerVisible(false);
-    if (!token || loading) return;
-    setLoading(true);
+    if (!token || fetchLoading) return;
+
+    // Abort any in-flight fetch from a previous scan before starting a new one.
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+
+    setFetchLoading(true);
     try {
-      const detail = await fetchCustomerDetail(token!, customerId);
+      const detail = await fetchCustomerDetail(token, customerId);
+      if (controller.signal.aborted) return;
       if (detail && detail.id) {
         const mappedCustomer: CustomerListItem = {
           id: detail.id,
@@ -82,10 +91,11 @@ export default function NewPayment() {
         Alert.alert('Not Found', 'No customer matches this scanned QR identity.');
       }
     } catch {
+      if (controller.signal.aborted) return;
       haptics.error();
       Alert.alert('Scan Error', 'Unable to resolve the scanned QR identity.');
     } finally {
-      setLoading(false);
+      setFetchLoading(false);
     }
   };
 
@@ -318,7 +328,7 @@ export default function NewPayment() {
             {/* Action Submit */}
             <TouchableOpacity
               onPress={handleSave}
-              disabled={!isFormValid || loading}
+              disabled={!isFormValid || loading || fetchLoading}
               style={{
                 backgroundColor: isFormValid ? '#14532D' : '#E5E7EB',
                 paddingVertical: 16,

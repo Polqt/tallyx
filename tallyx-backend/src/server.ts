@@ -17,6 +17,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(requestId);
+const isProduction = process.env.NODE_ENV === "production";
+if (isProduction && !process.env.ALLOWED_ORIGINS?.trim()) {
+  console.error("ALLOWED_ORIGINS is not set in production. All cross-origin requests will be rejected.");
+  process.exit(1);
+}
+
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS?.trim()
     ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())

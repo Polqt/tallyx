@@ -21,7 +21,10 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
 
   reset = () => {
     this.setState({ hasError: false, message: '' });
-    router.replace('/(protected)/(tabs)/dashboard');
+    // Navigate to the auth root — expo-router's root layout will redirect
+    // authenticated users to the dashboard and unauthenticated users to sign-in,
+    // avoiding an infinite loop if the crash happened inside a protected screen.
+    router.replace('/');
   };
 
   render() {
