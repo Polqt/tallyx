@@ -24,6 +24,10 @@ export async function fetchPayments(
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') throw err;
     if (cursor) throw err;
+    const isNetworkFailure =
+      err instanceof TypeError ||
+      (err instanceof Error && /timed out|network|failed to fetch/i.test(err.message));
+    if (!isNetworkFailure) throw err;
     const cached = await getCachedPayments();
     return { items: cached, hasMore: false, nextCursor: null };
   }

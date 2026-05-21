@@ -29,6 +29,10 @@ export async function fetchCredits(
     return data;
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') throw err;
+    const isNetworkFailure =
+      err instanceof TypeError ||
+      (err instanceof Error && /timed out|network|failed to fetch/i.test(err.message));
+    if (!isNetworkFailure) throw err;
     const cached = await getCachedCredits({
       customerId: params.customerId,
       status: params.status,

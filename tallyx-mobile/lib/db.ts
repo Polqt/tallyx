@@ -3,13 +3,25 @@ import * as SQLite from 'expo-sqlite';
 const DB_NAME = 'tallyx_cache.db';
 
 let _db: SQLite.SQLiteDatabase | null = null;
+let _dbInitPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (_db) return _db;
-  _db = await SQLite.openDatabaseAsync(DB_NAME);
-  await _db.execAsync(`PRAGMA journal_mode = WAL;`);
-  await migrate(_db);
-  return _db;
+  if (_dbInitPromise) return _dbInitPromise;
+
+  _dbInitPromise = (async () => {
+    const db = await SQLite.openDatabaseAsync(DB_NAME);
+    await db.execAsync(`PRAGMA journal_mode = WAL;`);
+    await migrate(db);
+    _db = db;
+    return db;
+  })();
+
+  try {
+    return await _dbInitPromise;
+  } finally {
+    _dbInitPromise = null;
+  }
 }
 
 async function migrate(db: SQLite.SQLiteDatabase) {
