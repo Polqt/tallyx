@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { Animated } from 'react-native';
 
+export const globalShowNav = { fn: () => {} };
+
 interface NavVisibilityContextValue {
   navOpacity: Animated.Value;
   navInteractive: boolean;
@@ -30,6 +32,8 @@ export function NavVisibilityProvider({ children }: { children: React.ReactNode 
       useNativeDriver: true,
     }).start(() => setNavInteractive(true));
   }, [navOpacity]);
+
+  globalShowNav.fn = showNav;
 
   return (
     <NavVisibilityContext.Provider value={{ navOpacity, navInteractive, hideNav, showNav }}>

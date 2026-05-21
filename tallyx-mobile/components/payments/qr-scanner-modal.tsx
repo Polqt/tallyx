@@ -4,6 +4,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { X, ShieldAlert, Sparkles } from 'lucide-react-native';
 import { haptics } from '@/utils/haptics';
 import { parseCustomerQRData } from '@/lib/qr';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Props {
   visible: boolean;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function QrScannerModal({ visible, onClose, onScanSuccess }: Props) {
+  const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
 
@@ -43,7 +45,7 @@ export function QrScannerModal({ visible, onClose, onScanSuccess }: Props) {
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
       <View style={styles.container}>
         {/* Header Overlay */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
           <TouchableOpacity onPress={onClose} activeOpacity={0.7} style={styles.closeButton}>
             <X size={20} color="#FFFFFF" strokeWidth={2.5} />
           </TouchableOpacity>
@@ -87,16 +89,17 @@ export function QrScannerModal({ visible, onClose, onScanSuccess }: Props) {
 
             {/* Viewfinder Overlays */}
             <View style={styles.overlayContainer}>
+              {/* Dark background behind everything */}
               <View style={styles.overlayTop} />
+
+              {/* Centered viewfinder row */}
               <View style={styles.overlayMiddleContainer}>
                 <View style={styles.overlaySide} />
                 <View style={styles.viewfinder}>
-                  {/* Viewfinder corners */}
                   <View style={[styles.corner, styles.topLeft]} />
                   <View style={[styles.corner, styles.topRight]} />
                   <View style={[styles.corner, styles.bottomLeft]} />
                   <View style={[styles.corner, styles.bottomRight]} />
-
                   {scanned && (
                     <View style={styles.scanSuccessOverlay}>
                       <Sparkles size={24} color="#16A34A" />
@@ -106,6 +109,8 @@ export function QrScannerModal({ visible, onClose, onScanSuccess }: Props) {
                 </View>
                 <View style={styles.overlaySide} />
               </View>
+
+              {/* Hint text pinned to bottom */}
               <View style={styles.overlayBottom}>
                 <Text style={styles.hintText}>
                   Center the customer QR code inside the frame to scan automatically
@@ -223,33 +228,37 @@ const styles = StyleSheet.create({
   },
   overlayContainer: {
     ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   overlayTop: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.6)',
   },
   overlayMiddleContainer: {
     flexDirection: 'row',
-    height: 250,
+    alignItems: 'center',
   },
   overlaySide: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    height: 250,
+    backgroundColor: 'transparent',
   },
   viewfinder: {
     width: 250,
     height: 250,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',
   },
   overlayBottom: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    position: 'absolute',
+    bottom: 80,
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    paddingTop: 32,
     paddingHorizontal: 40,
   },
   hintText: {
