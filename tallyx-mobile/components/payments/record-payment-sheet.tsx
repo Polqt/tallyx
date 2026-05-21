@@ -24,10 +24,11 @@ import { haptics } from '@/utils/haptics';
 type Props = {
   onClose: () => void;
   onSuccess: () => void;
+  isOnline: boolean;
 };
 
 export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
-  function RecordPaymentSheet({ onClose, onSuccess }, ref) {
+  function RecordPaymentSheet({ onClose, onSuccess, isOnline }, ref) {
     const insets = useSafeAreaInsets();
     const { token } = useAuth();
 
@@ -45,7 +46,7 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
 
     const numericAmount = Number(amount);
     const isOverpaid = credit ? numericAmount > credit.balance : false;
-    const isFormValid = customer && credit && amount.trim() && numericAmount > 0 && !isOverpaid;
+    const isFormValid = customer && credit && amount.trim() && numericAmount > 0 && !isOverpaid && isOnline;
 
     const handleChange = useCallback(
       (index: number) => {
@@ -296,6 +297,11 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
               className="px-5 pt-3"
               style={{ paddingBottom: Math.max(insets.bottom, 24) }}
             >
+              {!isOnline && (
+                <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 12, color: '#D97706', textAlign: 'center', marginBottom: 8 }}>
+                  You're offline. Connect to record a payment.
+                </Text>
+              )}
               <TouchableOpacity
                 onPress={handleSave}
                 disabled={!isFormValid || loading || fetchLoading}
