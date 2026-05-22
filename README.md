@@ -104,8 +104,8 @@ cargo test
 
 ### Mainnet
 
-- **Contract Address:** `coming soon`
-- **Explorer:** `coming soon`
+- **Contract Address:** `CCJEPGU7SIKECKAODQBIFMCZEE34K2MQJJ4MXFTZOZLNNGUBD6CWZKAS`
+- **Explorer:** [View on Stellar Expert (Mainnet)](https://stellar.expert/explorer/public/contract/CCJEPGU7SIKECKAODQBIFMCZEE34K2MQJJ4MXFTZOZLNNGUBD6CWZKAS)
 
 ## 🎥 Demo
 
