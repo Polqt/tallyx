@@ -72,7 +72,7 @@ export default function SignUp() {
       >
         <BottomSheetScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 8 }}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 160 }}
         >
           <View className="flex-row items-center mb-4">
             <TouchableOpacity
@@ -127,29 +127,41 @@ export default function SignUp() {
             />
           </View>
         </BottomSheetScrollView>
-
-        {/* Fixed footer — always visible */}
-        <View style={{ paddingHorizontal: 24, paddingBottom: insets.bottom + 24, gap: 12 }}>
-          <AuthButton
-            label="Create Account"
-            onPress={handleSignUp}
-            loading={loading}
-            disabled={!canSubmit}
-          />
-          <View className="items-center">
-            <Text className="font-geist" style={{ fontSize: 14, color: '#6B7280' }}>
-              {'Already have an account? '}
-              <Text
-                className="font-geist-bold"
-                style={{ color: '#16A34A' }}
-                onPress={() => router.replace('/(auth)/sign-in')}
-              >
-                Sign In
-              </Text>
-            </Text>
-          </View>
-        </View>
       </BottomSheet>
+
+      {/* Footer pinned outside BottomSheet — never moves with keyboard */}
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          paddingHorizontal: 24,
+          paddingBottom: insets.bottom + 24,
+          paddingTop: 12,
+          gap: 12,
+          backgroundColor: '#FFFFFF',
+        }}
+      >
+        <AuthButton
+          label="Create Account"
+          onPress={handleSignUp}
+          loading={loading}
+          disabled={!canSubmit}
+        />
+        <View className="items-center">
+          <Text className="font-geist" style={{ fontSize: 14, color: '#6B7280' }}>
+            {'Already have an account? '}
+            <Text
+              className="font-geist-bold"
+              style={{ color: '#16A34A' }}
+              onPress={() => router.replace('/(auth)/sign-in')}
+            >
+              Sign In
+            </Text>
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }
