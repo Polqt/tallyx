@@ -63,7 +63,7 @@ export default function SignUp() {
         snapPoints={SNAP_POINTS}
         topInset={insets.top}
         onChange={handleSheetChange}
-        keyboardBehavior="extend"
+        keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
         enableOverDrag={false}
         enablePanDownToClose={false}

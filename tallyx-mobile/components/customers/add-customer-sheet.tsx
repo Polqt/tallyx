@@ -65,7 +65,7 @@ export const AddCustomerSheet = forwardRef<BottomSheet, AddCustomerSheetProps>(
             />
           </View>
 
-          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20), borderTopWidth: 0 }]}>
             {!isOnline && (
               <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 12, color: '#D97706', textAlign: 'center', marginBottom: 8 }}>
                 You&apos;re offline. Connect to create a customer.
@@ -121,8 +121,6 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 20,
     paddingTop: 12,
-    borderTopWidth: 1,
-    borderColor: '#F3F4F6',
     backgroundColor: '#FFFFFF',
   },
   button: {
