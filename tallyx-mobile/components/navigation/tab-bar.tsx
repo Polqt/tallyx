@@ -114,17 +114,8 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
                   <tab.Icon size={20} color="#FFFFFF" strokeWidth={2} fill="#FFFFFF" />
                 </View>
               ) : (
-                <View style={{ alignItems: 'center', gap: 3, paddingVertical: 2 }}>
+                <View style={{ alignItems: 'center', paddingVertical: 2 }}>
                   <tab.Icon size={20} color={INACTIVE} strokeWidth={1.8} />
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      color: INACTIVE,
-                      fontFamily: 'Geist_400Regular',
-                    }}
-                  >
-                    {label}
-                  </Text>
                 </View>
               )}
             </TouchableOpacity>
