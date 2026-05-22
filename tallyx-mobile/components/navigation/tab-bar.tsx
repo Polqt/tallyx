@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, View, Text, TouchableOpacity } from 'react-native';
+import { Animated, View, TouchableOpacity } from 'react-native';
 import { useNavVisibility } from '@/context/NavVisibilityContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -49,7 +49,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         elevation: 16,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         {ALL_TABS.map((tab, index) => {
           const active = state.index === index;
           const isCenter = tab.name === 'credits';
@@ -86,38 +86,25 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             );
           }
 
-          const label = tab.label ?? '';
-
           return (
             <TouchableOpacity
               key={tab.name}
               onPress={() => navigation.navigate(tab.name)}
               activeOpacity={0.7}
-              style={{ flex: 1, alignItems: 'center', paddingVertical: 2 }}
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 6 }}
             >
-              {active ? (
-                <View
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 22,
-                    backgroundColor: ACTIVE,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    shadowColor: ACTIVE,
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.35,
-                    shadowRadius: 8,
-                    elevation: 6,
-                  }}
-                >
-                  <tab.Icon size={20} color="#FFFFFF" strokeWidth={2} fill="#FFFFFF" />
-                </View>
-              ) : (
-                <View style={{ alignItems: 'center', paddingVertical: 2 }}>
-                  <tab.Icon size={20} color={INACTIVE} strokeWidth={1.8} />
-                </View>
-              )}
+              <tab.Icon
+                size={22}
+                color={active ? ACTIVE : INACTIVE}
+                strokeWidth={active ? 2.2 : 1.8}
+              />
+              <View style={{
+                width: 20,
+                height: 2,
+                borderRadius: 1,
+                backgroundColor: active ? ACTIVE : 'transparent',
+                marginTop: 4,
+              }} />
             </TouchableOpacity>
           );
         })}
