@@ -64,7 +64,6 @@ export const AddCreditSheet = forwardRef<BottomSheet, Props>(
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
         backdropComponent={renderBackdrop}
-        animationConfigs={{ duration: 500, dampingRatio: 0.8 }}
         onClose={onClose}
         handleIndicatorStyle={{ backgroundColor: '#D1D5DB', width: 40 }}
         backgroundStyle={{ backgroundColor: '#FFFFFF' }}

@@ -180,20 +180,12 @@ export default function Customers() {
         phone: newPhone.trim() || undefined,
       });
 
-      fadeAnims.current[customer.id] = new Animated.Value(0);
+      fadeAnims.current[customer.id] = new Animated.Value(1);
       setCustomers((prev) => [customer, ...prev]);
       setTotalCustomers((total) => total + 1);
       sheetRef.current?.close();
       haptics.success();
       router.push(`/(protected)/customers/${customer.id}` as any);
-
-      setTimeout(() => {
-        Animated.timing(fadeAnims.current[customer.id], {
-          toValue: 1,
-          duration: 350,
-          useNativeDriver: true,
-        }).start();
-      }, 50);
     } catch (error) {
       haptics.error();
       Toast.show({

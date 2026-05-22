@@ -108,7 +108,6 @@ export default function Credits() {
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
       loadCredits(1);
     }, [loadCredits])
   );
