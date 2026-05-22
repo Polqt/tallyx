@@ -140,7 +140,7 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
           backgroundStyle={{ backgroundColor: '#FFFFFF', borderRadius: 28 }}
           handleIndicatorStyle={{ backgroundColor: '#D1D5DB', width: 36 }}
         >
-          <BottomSheetView className="flex-1 justify-between">
+          <BottomSheetView style={{ flex: 1 }}>
 
             {/* Header */}
             <View className="px-5 pt-1 pb-4 border-b border-gray-100">
@@ -152,7 +152,7 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
             {/* Scrollable form */}
             <BottomSheetScrollView
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 24 }}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: Math.max(insets.bottom, 24) + 80 }}
               style={{ flex: 1 }}
             >
               {/* Step 1: Customer */}
@@ -330,11 +330,13 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
             {/* Pinned submit button */}
             <View
               style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
                 paddingHorizontal: 20,
                 paddingTop: 12,
                 paddingBottom: Math.max(insets.bottom, 24),
-                borderTopWidth: 1,
-                borderTopColor: '#F3F4F6',
                 backgroundColor: '#FFFFFF',
               }}
             >
