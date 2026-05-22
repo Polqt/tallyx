@@ -163,20 +163,30 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
                 <TouchableOpacity
                   onPress={() => setCustomerModalVisible(true)}
                   activeOpacity={0.8}
-                  className="flex-row items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200 mb-5"
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: 16,
+                    backgroundColor: '#EFF6FF',
+                    borderRadius: 20,
+                    borderWidth: 1.5,
+                    borderColor: '#93C5FD',
+                    marginBottom: 20,
+                  }}
                 >
-                  <View className="flex-row items-center gap-3">
-                    <View className="w-9 h-9 rounded-full bg-blue-50 items-center justify-center">
-                      <User size={18} color="#2563EB" />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                    <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#DBEAFE', alignItems: 'center', justifyContent: 'center' }}>
+                      <User size={20} color="#2563EB" />
                     </View>
                     <View>
-                      <Text className="font-[Geist_600SemiBold] text-[15px] text-gray-900">{customer.name}</Text>
-                      <Text className="font-[Geist_400Regular] text-[12px] text-gray-500 mt-0.5">
+                      <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 16, color: '#111827' }}>{customer.name}</Text>
+                      <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: '#6B7280', marginTop: 2 }}>
                         Outstanding: {formatPeso(customer.balance)}
                       </Text>
                     </View>
                   </View>
-                  <Text className="font-[Geist_600SemiBold] text-[12px] text-green-600">Change</Text>
+                  <Text style={{ fontFamily: 'Geist_600SemiBold', fontSize: 13, color: '#16A34A' }}>Change</Text>
                 </TouchableOpacity>
               ) : (
                 <View className="mb-5">
