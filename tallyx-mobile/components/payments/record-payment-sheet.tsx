@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { forwardRef, useCallback, useRef, useState  } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import BottomSheet, { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { User, Calendar, QrCode, CreditCard } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import { fetchCustomerDetail } from '@/features/customers/customer.service';
@@ -140,7 +140,7 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
           backgroundStyle={{ backgroundColor: '#FFFFFF', borderRadius: 28 }}
           handleIndicatorStyle={{ backgroundColor: '#D1D5DB', width: 36 }}
         >
-          <BottomSheetView style={{ flex: 1 }}>
+          <View style={{ flex: 1 }}>
 
             {/* Header */}
             <View className="px-5 pt-1 pb-4 border-b border-gray-100">
@@ -152,7 +152,7 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
             {/* Scrollable form */}
             <BottomSheetScrollView
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: Math.max(insets.bottom, 24) + 80 }}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}
               style={{ flex: 1 }}
             >
               {/* Step 1: Customer */}
@@ -330,10 +330,6 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
             {/* Pinned submit button */}
             <View
               style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
                 paddingHorizontal: 20,
                 paddingTop: 12,
                 paddingBottom: Math.max(insets.bottom, 24),
@@ -372,7 +368,7 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
               </TouchableOpacity>
             </View>
 
-          </BottomSheetView>
+          </View>
         </BottomSheet>
 
         <CustomerSelectModal
