@@ -133,7 +133,7 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
         <BottomSheet
           ref={ref}
           index={-1}
-          snapPoints={['75%']}
+          snapPoints={['85%']}
           enablePanDownToClose
           enableDynamicSizing={false}
           onChange={handleChange}
@@ -152,7 +152,7 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
             {/* Scrollable form */}
             <BottomSheetScrollView
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 24 }}
               style={{ flex: 1 }}
             >
               {/* Step 1: Customer */}
@@ -216,39 +216,64 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
               {/* Step 2: Credit */}
               {customer && (
                 <>
-                  <Text className="font-[Geist_600SemiBold] text-[11px] text-gray-500 uppercase tracking-widest mb-2">
+                  <Text className="font-[Geist_600SemiBold] text-[11px] text-gray-500 uppercase tracking-widest mb-3">
                     Step 2 · Select Credit
                   </Text>
                   {credit ? (
                     <TouchableOpacity
                       onPress={() => setCreditModalVisible(true)}
                       activeOpacity={0.8}
-                      className="flex-row items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200 mb-5"
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: 16,
+                        backgroundColor: '#FFFBEB',
+                        borderRadius: 20,
+                        borderWidth: 1.5,
+                        borderColor: '#FCD34D',
+                        marginBottom: 20,
+                      }}
                     >
-                      <View className="flex-row items-center gap-3">
-                        <View className="w-9 h-9 rounded-full bg-yellow-50 items-center justify-center">
-                          <Calendar size={18} color="#D97706" />
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#FEF3C7', alignItems: 'center', justifyContent: 'center' }}>
+                          <Calendar size={20} color="#D97706" />
                         </View>
                         <View>
-                          <Text className="font-[Geist_600SemiBold] text-[15px] text-gray-900">
-                            Remaining: {formatPeso(credit.balance)}
+                          <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 16, color: '#111827' }}>
+                            {formatPeso(credit.balance)} remaining
                           </Text>
-                          <Text className="font-[Geist_400Regular] text-[12px] text-gray-500 mt-0.5">
-                            Issued: {new Date(credit.date).toLocaleDateString()}
+                          <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: '#6B7280', marginTop: 2 }}>
+                            Issued {new Date(credit.date).toLocaleDateString()}
                           </Text>
                         </View>
                       </View>
-                      <Text className="font-[Geist_600SemiBold] text-[12px] text-green-600">Change</Text>
+                      <Text style={{ fontFamily: 'Geist_600SemiBold', fontSize: 13, color: '#16A34A' }}>Change</Text>
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
                       onPress={() => setCreditModalVisible(true)}
                       activeOpacity={0.8}
-                      className="py-5 items-center justify-center bg-white rounded-2xl border border-dashed border-gray-200 mb-5"
+                      style={{
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        paddingVertical: 28,
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: 20,
+                        borderWidth: 1.5,
+                        borderStyle: 'dashed',
+                        borderColor: '#D1D5DB',
+                        marginBottom: 20,
+                        gap: 10,
+                      }}
                     >
-                      <Text className="font-[Geist_600SemiBold] text-[14px] text-green-600">
-                        + Select Unpaid Credit
-                      </Text>
+                      <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: '#FFFBEB', alignItems: 'center', justifyContent: 'center' }}>
+                        <Calendar size={24} color="#D97706" />
+                      </View>
+                      <View style={{ alignItems: 'center', gap: 4 }}>
+                        <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 15, color: '#111827' }}>Select Unpaid Credit</Text>
+                        <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 13, color: '#9CA3AF' }}>Tap to choose which utang to pay</Text>
+                      </View>
                     </TouchableOpacity>
                   )}
                 </>
@@ -294,8 +319,14 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
 
             {/* Pinned submit button */}
             <View
-              className="px-5 pt-3"
-              style={{ paddingBottom: Math.max(insets.bottom, 24) }}
+              style={{
+                paddingHorizontal: 20,
+                paddingTop: 12,
+                paddingBottom: Math.max(insets.bottom, 24),
+                borderTopWidth: 1,
+                borderTopColor: '#F3F4F6',
+                backgroundColor: '#FFFFFF',
+              }}
             >
               {!isOnline && (
                 <Text style={{ fontFamily: 'Geist_400Regular', fontSize: 12, color: '#D97706', textAlign: 'center', marginBottom: 8 }}>
@@ -306,14 +337,22 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
                 onPress={handleSave}
                 disabled={!isFormValid || loading || fetchLoading}
                 activeOpacity={0.85}
-                className={`h-[52px] rounded-2xl items-center justify-center flex-row gap-2 ${isFormValid ? 'bg-green-700' : 'bg-gray-200'}`}
+                style={{
+                  height: 56,
+                  borderRadius: 28,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: 8,
+                  backgroundColor: isFormValid ? '#14532D' : '#E5E7EB',
+                }}
               >
                 {loading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <>
                     <CreditCard size={18} color={isFormValid ? '#FFFFFF' : '#9CA3AF'} />
-                    <Text className={`font-[Geist_600SemiBold] text-[15px] ${isFormValid ? 'text-white' : 'text-gray-400'}`}>
+                    <Text style={{ fontFamily: 'Geist_700Bold', fontSize: 16, color: isFormValid ? '#FFFFFF' : '#9CA3AF' }}>
                       Confirm Payment
                     </Text>
                   </>
