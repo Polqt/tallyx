@@ -13,7 +13,13 @@ const sslConfig = isProduction
 
 const pool = new Pool(
   process.env.DATABASE_URL
-    ? { connectionString: process.env.DATABASE_URL, ssl: sslConfig }
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: sslConfig,
+        max: 10,
+        connectionTimeoutMillis: 10000,
+        idleTimeoutMillis: 30000,
+      }
     : {
         host: process.env.DB_HOST,
         port: Number(process.env.DB_PORT) || 5432,
@@ -21,6 +27,9 @@ const pool = new Pool(
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
         ssl: sslConfig,
+        max: 10,
+        connectionTimeoutMillis: 10000,
+        idleTimeoutMillis: 30000,
       }
 );
 

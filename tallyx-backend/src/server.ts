@@ -16,6 +16,7 @@ import { AppError } from "./middleware/errorHandler.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.set('trust proxy', 1);
 app.use(requestId);
 const isProduction = process.env.NODE_ENV === "production";
 if (isProduction && !process.env.ALLOWED_ORIGINS?.trim()) {
