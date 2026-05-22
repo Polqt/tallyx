@@ -120,9 +120,11 @@ export default function Credits() {
 
   function openSheet() {
     haptics.light();
-    sheetRef.current?.snapToIndex(0);
+    if (!sheetRef.current) return;
+
     setSheetOpen(true);
     hideNav();
+    requestAnimationFrame(() => sheetRef.current?.snapToIndex(0));
   }
 
   function handleSheetClose() {

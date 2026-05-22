@@ -92,9 +92,11 @@ export default function Payments() {
 
   function openSheet() {
     haptics.light();
-    sheetRef.current?.snapToIndex(0);
+    if (!sheetRef.current) return;
+
     setSheetOpen(true);
     hideNav();
+    requestAnimationFrame(() => sheetRef.current?.snapToIndex(0));
   }
 
   function handleSheetClose() {

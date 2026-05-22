@@ -17,6 +17,7 @@ export function NavVisibilityProvider({ children }: { children: React.ReactNode 
   const [navInteractive, setNavInteractive] = useState(true);
 
   const hideNav = useCallback(() => {
+    navOpacity.stopAnimation();
     setNavInteractive(false);
     Animated.timing(navOpacity, {
       toValue: 0,
@@ -26,11 +27,14 @@ export function NavVisibilityProvider({ children }: { children: React.ReactNode 
   }, [navOpacity]);
 
   const showNav = useCallback(() => {
+    navOpacity.stopAnimation();
     Animated.timing(navOpacity, {
       toValue: 1,
       duration: 500,
       useNativeDriver: true,
-    }).start(() => setNavInteractive(true));
+    }).start(({ finished }) => {
+      if (finished) setNavInteractive(true);
+    });
   }, [navOpacity]);
 
   globalShowNav.fn = showNav;

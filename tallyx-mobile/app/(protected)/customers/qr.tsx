@@ -9,6 +9,7 @@ import { CheckCircle2, ChevronLeft, Download, Landmark, Share2 } from 'lucide-re
 import ViewShot from 'react-native-view-shot';
 import QRCode from 'react-native-qrcode-svg';
 import { createCustomerQRData } from '@/lib/qr';
+import { useHideTabBarOnFocus } from '@/hooks/useHideTabBarOnFocus';
 import { useStoreStore } from '@/stores/store.store';
 import { haptics } from '@/utils/haptics';
 
@@ -17,6 +18,8 @@ function safeFileName(value: string) {
 }
 
 export default function QRScreen() {
+  useHideTabBarOnFocus();
+
   const insets = useSafeAreaInsets();
   const { id, name, qr } = useLocalSearchParams<{ id: string; name: string; qr?: string }>();
   const profile = useStoreStore((s) => s.profile);

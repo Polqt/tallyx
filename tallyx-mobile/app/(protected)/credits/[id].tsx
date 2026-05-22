@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { deleteCredit, fetchCredit, unvoidCredit, updateCredit, voidCredit } from '@/features/credits/credit.service';
 import type { CreditListItem } from '@/features/credits/credit.types';
 import { openTransactionExplorer } from '@/features/stellar/stellar.service';
+import { useHideTabBarOnFocus } from '@/hooks/useHideTabBarOnFocus';
 import { statusStyles } from '@/utils/credit';
 import { compactKey, formatDashboardDate, formatPeso } from '@/utils/dashboard';
 import { haptics } from '@/utils/haptics';
@@ -21,6 +22,8 @@ const syncConfig = {
 };
 
 export default function CreditDetailScreen() {
+  useHideTabBarOnFocus();
+
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();

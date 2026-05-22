@@ -8,11 +8,14 @@ import QRCode from 'react-native-qrcode-svg';
 import { useAuth } from '@/context/AuthContext';
 import { deleteCustomer, fetchCustomerDetail, updateCustomer } from '@/features/customers/customer.service';
 import type { CustomerDetail } from '@/features/customers/customer.types';
+import { useHideTabBarOnFocus } from '@/hooks/useHideTabBarOnFocus';
 import { formatDashboardDate, formatPeso } from '@/utils/dashboard';
 import { getCustomerAvatarColor } from '@/utils/customers';
 import { haptics } from '@/utils/haptics';
 
 export default function CustomerDetailScreen() {
+  useHideTabBarOnFocus();
+
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();

@@ -8,11 +8,14 @@ import { openTransactionExplorer } from '@/features/stellar/stellar.service';
 import { useAuth } from '@/context/AuthContext';
 import { fetchPayment } from '@/features/payments/payment.service';
 import type { PaymentItem } from '@/features/payments/payment.types';
+import { useHideTabBarOnFocus } from '@/hooks/useHideTabBarOnFocus';
 import { getCustomerAvatarColor } from '@/utils/customers';
 import { formatDashboardDate, formatPeso, compactKey } from '@/utils/dashboard';
 import { haptics } from '@/utils/haptics';
 
 export default function PaymentDetailScreen() {
+  useHideTabBarOnFocus();
+
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
