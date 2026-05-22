@@ -16,7 +16,7 @@ export const useStellarStore = create<StellarState>()(
       wallet: null,
       connect: (publicKey) => {
         if (!isValidStellarAddress(publicKey)) return;
-        set({ wallet: { publicKey, network: 'testnet' } });
+        set({ wallet: { publicKey, network: 'mainnet' } });
       },
       disconnect: () => set({ wallet: null }),
     }),

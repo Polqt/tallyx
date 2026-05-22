@@ -3,10 +3,10 @@ export interface StellarWallet {
   network: 'testnet' | 'mainnet';
 }
 
-export const STELLAR_EXPLORER_BASE = 'https://stellar.expert/explorer/testnet';
+export const STELLAR_EXPLORER_BASE = 'https://stellar.expert/explorer/mainnet';
 
-// Testnet USDC contract (Circle) — used for approve flow
-export const USDC_CONTRACT_TESTNET = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA';
+// Mainnet USDC contract (Circle)
+export const USDC_CONTRACT_MAINNET = 'CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75';
 
-// Tallyx credit-ledger contract on testnet
-export const CREDIT_CONTRACT_TESTNET = 'CCHRJVFEVSJEQPEEL4655WLIF7DQRI7ZYNUOTPJTYPRCYNNHE2JAJYNN';
+// Tallyx credit-ledger contract on mainnet
+export const CREDIT_CONTRACT_MAINNET = 'PENDING_MAINNET_DEPLOY';

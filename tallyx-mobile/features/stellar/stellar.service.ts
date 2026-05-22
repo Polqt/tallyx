@@ -1,5 +1,5 @@
 import { Linking } from 'react-native';
-import { CREDIT_CONTRACT_TESTNET, STELLAR_EXPLORER_BASE, USDC_CONTRACT_TESTNET } from './stellar.types';
+import { CREDIT_CONTRACT_MAINNET, STELLAR_EXPLORER_BASE, USDC_CONTRACT_MAINNET } from './stellar.types';
 
 /**
  * Validates a Stellar public key (G... address, 56 chars).
@@ -21,17 +21,17 @@ async function openUrl(url: string): Promise<void> {
   if (supported) await Linking.openURL(url);
 }
 
-/** Opens a transaction on Stellar Expert testnet explorer. */
+/** Opens a transaction on Stellar Expert mainnet explorer. */
 export function openTransactionExplorer(txHash: string): Promise<void> {
   return openUrl(`${STELLAR_EXPLORER_BASE}/tx/${txHash}`);
 }
 
-/** Opens an account on Stellar Expert testnet explorer. */
+/** Opens an account on Stellar Expert mainnet explorer. */
 export function openAccountExplorer(publicKey: string): Promise<void> {
   return openUrl(`${STELLAR_EXPLORER_BASE}/account/${publicKey}`);
 }
 
-/** Opens a contract on Stellar Expert testnet explorer. */
+/** Opens a contract on Stellar Expert mainnet explorer. */
 export function openContractExplorer(contractId: string): Promise<void> {
   return openUrl(`${STELLAR_EXPLORER_BASE}/contract/${contractId}`);
 }
@@ -52,13 +52,13 @@ export function openUsdcApproveInLab(customerPublicKey: string, amount: number):
   // Stellar Lab allows pre-filling a contract invocation via URL params.
   // We build the approve call: usdc.approve(customer, credit_ledger, amount, expiry_ledger)
   const params = new URLSearchParams({
-    network: 'testnet',
-    contractId: USDC_CONTRACT_TESTNET,
+    network: 'mainnet',
+    contractId: USDC_CONTRACT_MAINNET,
     function: 'approve',
     // Arguments in order: from, spender, amount, expiration_ledger
     // We pass them as JSON-encoded XDR-friendly values via the lab's format
     from: customerPublicKey,
-    spender: CREDIT_CONTRACT_TESTNET,
+    spender: CREDIT_CONTRACT_MAINNET,
     amount: String(amount),
   });
 
@@ -78,5 +78,5 @@ export function openFreighterWeb(): Promise<void> {
  * Opens Stellar Lab for a general transaction builder session.
  */
 export function openStellarLab(): Promise<void> {
-  return openUrl('https://lab.stellar.org/?network=testnet');
+  return openUrl('https://lab.stellar.org/?network=mainnet');
 }
