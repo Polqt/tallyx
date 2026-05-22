@@ -156,7 +156,7 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
               style={{ flex: 1 }}
             >
               {/* Step 1: Customer */}
-              <Text className="font-[Geist_600SemiBold] text-[11px] text-gray-500 uppercase tracking-widest mb-2">
+              <Text className="font-[Geist_600SemiBold] text-[11px] text-gray-500 uppercase tracking-widest mb-3">
                 Step 1 · Customer
               </Text>
               {customer ? (
@@ -172,7 +172,7 @@ export const RecordPaymentSheet = forwardRef<BottomSheet, Props>(
                     borderRadius: 20,
                     borderWidth: 1.5,
                     borderColor: '#93C5FD',
-                    marginBottom: 20,
+                    marginBottom: 28,
                   }}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
