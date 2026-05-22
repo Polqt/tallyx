@@ -59,12 +59,13 @@ export const AddCreditSheet = forwardRef<BottomSheet, Props>(
         ref={ref}
         index={-1}
         snapPoints={['50%', '92%']}
+        enableDynamicSizing={false}
         enablePanDownToClose
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
         backdropComponent={renderBackdrop}
-        onClose={onClose}
+        onChange={(index) => { if (index === -1) onClose(); }}
         handleIndicatorStyle={{ backgroundColor: '#D1D5DB', width: 40 }}
         backgroundStyle={{ backgroundColor: '#FFFFFF' }}
       >
